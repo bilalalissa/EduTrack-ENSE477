@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Transcription App</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <div class="container" style="background-color: black;">
+        <a href="../home.php">
+            <button type="button">Home</button>
+          </a>
+        <br> 
+        <h1>Transcribe Video/Audio</h1>
+       
+        <form id="transcription-form" >
+            <label for="youtube-link">YouTube Video Link:</label>
+            <input type="text" id="youtube-link" placeholder="Enter YouTube link">
+
+            <label for="file-upload">Or Upload Video/Audio File:</label>
+            <input type="file" id="file-upload" accept="audio/*,video/*">
+
+            <!-- Options for Summary and Outline -->
+            <label>
+                <input type="checkbox" id="include-summary" checked>
+                Include Summary
+            </label>
+            <label>
+                <input type="checkbox" id="include-outline" checked>
+                Include Outline
+            </label>
+
+            <button type="submit">Transcribe</button>
+        </form>
+
+        <div id="transcription-result"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="./css/styles.css">
+  <title>EduTrack Reminder App</title>
+</head>
+
+<body>
+  <a href="home.php">
+    <button type="button">Home</button>
+  </a>
+  <h1>EduTrack Reminder App</h1>
+  
+  <!-- Section for Default Reminders -->
+  <div>
+    <h2>Add Default Reminders (Day 3, Day 7, Day 21)</h2>
+    <label for="topic-default">Enter Topic:</label>
+    <input type="text" id="topic-default" placeholder="Enter your topic"><br><br>
+
+    <label for="time-default">Enter Reminder Time (optional):</label>
+    <input type="time" id="time-default" placeholder="HH:MM"><br><br>
+
+    <button onclick="addDefaultReminders()">Add Default Reminders</button>
+  </div>
+
+  <hr>
+
+  <!-- Section for Custom Reminders -->
+  <div>
+    <h2>Add Custom Reminders</h2>
+    <label for="topic-custom">Enter Topic:</label>
+    <input type="text" id="topic-custom" placeholder="Enter your topic"><br><br>
+
+    <label for="due-date">Enter Due Date:</label>
+    <input type="date" id="due-date"><br><br>
+
+    <label for="reminder-days">Enter Reminder Days (comma-separated):</label>
+    <input type="text" id="reminder-days" placeholder="e.g., -7, -3, 0"><br><br>
+
+    <label for="time-custom">Enter Reminder Time (optional):</label>
+    <input type="time" id="time-custom" placeholder="HH:MM"><br><br>
+
+    <button onclick="addCustomReminders()">Add Custom Reminders</button>
+  </div>
+
+  <script>
+    function downloadICS(events) {
+      const blob = new Blob([events], { type: "text/calendar;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "EduTrack-Reminder.ics";
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function createICSEvent(summary, startDate, description, alertOffset) {
+      const startISO = startDate.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+      return `
+BEGIN:VEVENT
+SUMMARY:${summary}
+DTSTART:${startISO}
+DESCRIPTION:${description}
+BEGIN:VALARM
+TRIGGER:-PT${alertOffset}M
+ACTION:DISPLAY
+DESCRIPTION:Reminder - ${summary}
+END:VALARM
+END:VEVENT
+`;
+    }
+
+    function getTimeOrDefault(timeInput) {
+      if (timeInput) {
+        const [hours, minutes] = timeInput.split(":");
+        return { hours: parseInt(hours, 10), minutes: parseInt(minutes, 10) };
+      }
+      // Default to 09:00 AM
+      return { hours: 9, minutes: 0 };
+    }
+
+    function addDefaultReminders() {
+      const topic = document.getElementById("topic-default").value;
+      const timeInput = document.getElementById("time-default").value;
+
+      if (!topic) {
+        alert("Please enter a topic.");
+        return;
+      }
+
+      const defaultTime = getTimeOrDefault(timeInput);
+      const today = new Date();
+      const reminders = [
+        { days: 3, label: "Day 3 Reminder" },
+        { days: 7, label: "Day 7 Reminder" },
+        { days: 21, label: "Day 21 Reminder" },
+      ];
+
+      let events = "BEGIN:VCALENDAR\nVERSION:2.0\n";
+      reminders.forEach((reminder) => {
+        const reminderDate = new Date(today);
+        reminderDate.setDate(today.getDate() + reminder.days);
+        reminderDate.setHours(defaultTime.hours, defaultTime.minutes, 0, 0);
+        events += createICSEvent(
+          `${topic} [${reminder.label}]`,
+          reminderDate,
+          `Review the topic: ${topic}`,
+          60 // Trigger alert 1 hour before
+        );
+      });
+      events += "END:VCALENDAR";
+
+      downloadICS(events);
+      alert("Default reminders added successfully!");
+      document.getElementById("topic-default").value = ""; // Reset input
+      document.getElementById("time-default").value = ""; // Reset input
+    }
+
+    function addCustomReminders() {
+      const topic = document.getElementById("topic-custom").value;
+      const dueDateInput = document.getElementById("due-date").value;
+      const reminderDaysInput = document.getElementById("reminder-days").value;
+      const timeInput = document.getElementById("time-custom").value;
+
+      if (!topic || !dueDateInput || !reminderDaysInput) {
+        alert("Please fill in all fields.");
+        return;
+      }
+
+      const defaultTime = getTimeOrDefault(timeInput);
+      const dueDate = new Date(dueDateInput);
+      const reminderDays = reminderDaysInput.split(",").map((d) => parseInt(d.trim(), 10));
+
+      let events = "BEGIN:VCALENDAR\nVERSION:2.0\n";
+      reminderDays.forEach((offset) => {
+        const reminderDate = new Date(dueDate);
+        reminderDate.setDate(dueDate.getDate() + offset + 1);
+        reminderDate.setHours(defaultTime.hours, defaultTime.minutes, 0, 0);
+        const label = offset === 0 ? "Due Date" : `${offset > 0 ? "+" : ""}${offset} Days Reminder`;
+        events += createICSEvent(
+          `${topic} [${label}]`,
+          reminderDate,
+          `Prepare for the topic: ${topic}`,
+          60 // Trigger alert 1 hour before
+        );
+      });
+      events += "END:VCALENDAR";
+
+      downloadICS(events);
+      alert("Custom reminders added successfully!");
+      document.getElementById("topic-custom").value = ""; // Reset input
+      document.getElementById("due-date").value = ""; // Reset input
+      document.getElementById("reminder-days").value = ""; // Reset input
+      document.getElementById("time-custom").value = ""; // Reset input
+    }
+  </script>
+</body>
+
+</html>

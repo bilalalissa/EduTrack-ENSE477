@@ -1,0 +1,48 @@
+Instructions for Running the Application
+
+	~1.	Setup the Python Environment~ (NO NEED, THE UPDATED CODE DOES THIS STEP!):
+        •	Install the required libraries: pip install -r requirements.txt.
+        •	Ensure you have ffmpeg installed on your system, as it’s needed for audio processing.
+	2.	Run the Flask App:
+	    •	Execute python app.py to start the backend server.
+	3.	Open index.html in Your Browser:
+	    •	Open your browser and go to http://127.0.0.1:5000 to use the transcription app.
+	4.	How It Works:
+        •	The user can either paste a YouTube link or upload a video/audio file.
+        •	The transcription is performed using the Whisper model, and a summarized transcription is displayed.
+
+Notes
+
+	•	This code uses the OpenAI Whisper model for transcription, which provides accurate results.
+	•	The YouTube download is handled using youtube_dl.
+
+    	1.	HTML: Added checkboxes for “Include Summary” and “Include Outline,” which are checked by default.
+	2.	JavaScript: Captures the state of the checkboxes and sends the values to the backend as part of the FormData.
+	3.	Python:
+	•	Checks whether the user wants to include the summary and outline.
+	•	Conditionally appends the summary and outline to the final transcription text.
+
+User Options
+
+	•	Include Summary: The user can check or uncheck this box to include or exclude the summary.
+	•	Include Outline: The user can check or uncheck this box to include or exclude a simple outline.
+
+What app.py does?
+1.	Function install_package:
+	•	This function checks if a package is already installed. If not, it installs the package using pip.
+	•	The subprocess module is used to run the pip install command from within the script.
+2.	Requirement Check and Installation:
+	•	The script iterates over a list of required packages and ensures each is installed before importing them.
+	•	Special Case: The package ffmpeg is installed as ffmpeg-python in pip.
+
+More..
+Usage Instructions:
+
+	•	When you run this script, it will automatically check for the required libraries (flask, whisper, youtube_dl, ffmpeg-python) and install any missing ones.
+	•	The imports for the libraries occur only after ensuring they are installed, making the script self-sufficient.
+
+Important Notes:
+
+	•	Permissions: Make sure you have the necessary permissions to install packages using pip.
+	•	Environment: This script modifies the Python environment by installing packages. If you are working in a virtual environment, ensure it is activated before running the script.
+	•	FFmpeg Installation: You may still need to install the FFmpeg binary separately on your system if it’s not already installed, as ffmpeg-python is just a Python wrapper.
