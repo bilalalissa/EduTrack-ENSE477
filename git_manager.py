@@ -324,7 +324,7 @@ def track_files():
                 run_command_silently("git push origin main")
                 print("\nChanges committed and pushed to remote successfully")
             except subprocess.CalledProcessError as e:
-                error_msg = e.stderr.decode() if e.stderr else str(e)
+                error_msg = e.stderr
                 print(f"\nError pushing to remote: {error_msg}")
                 print("\nYour changes are committed locally but couldn't be pushed.")
                 print("You may need to pull remote changes first using option 12 (Sync with Remote)")
@@ -967,7 +967,7 @@ def sync_with_remote():
             print("\nChanges successfully pushed to remote.")
             log_operation("Sync", "SUCCESS", f"Changes pushed to remote using email: {email}")
         else:
-            error_msg = push_result.stderr.decode()
+            error_msg = push_result.stderr
             if "src refspec" in error_msg:
                 print(f"\nError: Branch '{selected_branch}' not found on remote. Would you like to:")
                 print("1. Push branch to remote")
