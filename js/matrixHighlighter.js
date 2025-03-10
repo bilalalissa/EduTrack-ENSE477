@@ -144,6 +144,9 @@
       return `${year}-${month}-${day}`;
     }
 
+    // Ensure todayCol is defined
+    const todayCol = calculateTodayColumn(); // Define this function to calculate the column for today
+
     tasks.forEach((task, index) => {
       // TODO: fix delay in calculating date for current week, and days difference of haighlighted cells
       // TODO: fix the issue of suggested date's cell style not being applied correctly
@@ -460,6 +463,12 @@
       }
     `;
     document.head.appendChild(style);
+  }
+
+  function calculateTodayColumn() {
+    // Logic to calculate the column index for today
+    // This is a placeholder function, replace with actual logic
+    return 0; // Example: return the index of today's column
   }
 
   // ───────────────────────────────────────────────

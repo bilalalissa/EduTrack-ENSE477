@@ -58,3 +58,69 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
+document.addEventListener('DOMContentLoaded', function () {
+    const taskTable = document.getElementById('taskTable');
+    if (taskTable) {
+        taskTable.addEventListener('click', function (event) {
+            const cell = event.target.closest('.task-cell');
+            if (!cell) return;
+
+            const taskId = cell.getAttribute('data-task-id');
+
+            // Fetch task details via AJAX
+            fetchTaskDetails(taskId);
+        });
+    }
+
+    const closePanelBtn = document.getElementById('closePanelBtn');
+    if (closePanelBtn) {
+        closePanelBtn.addEventListener('click', function () {
+            const taskDetailsPanel = document.getElementById('taskDetailsPanel');
+            if (taskDetailsPanel) {
+                taskDetailsPanel.classList.remove('visible');
+            }
+        });
+    }
+
+    function fetchTaskDetails(taskId) {
+        fetch('tasksHandler.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `action=list&task_id=${taskId}`
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    displayTaskDetails(data.task);
+                } else {
+                    console.error('Failed to fetch task details:', data.message);
+                }
+            })
+            .catch(error => console.error('Error fetching task details:', error));
+    }
+
+    function displayTaskDetails(task) {
+        const content = `
+            <p><strong>Title:</strong> ${task.title}</p>
+            <p><strong>Type:</strong> ${task.task_type}</p>
+            <p><strong>From Date:</strong> ${task.from_date}</p>
+            <p><strong>To Date:</strong> ${task.to_date}</p>
+            <p><strong>Status:</strong> ${task.status}</p>
+            <p><strong>Priority:</strong> ${task.priority}</p>
+            <p><strong>Suggested Date:</strong> ${task.suggested_date}</p>
+            <p><strong>Actual Start Date:</strong> ${task.actual_start_date}</p>
+            <p><strong>Actual End Date:</strong> ${task.actual_end_date}</p>
+            <p><strong>Percent:</strong> ${task.percent}%</p>
+            <p><strong>Details:</strong> ${task.details}</p>
+        `;
+        const panelContent = document.querySelector('.panel-content');
+        if (panelContent) {
+            panelContent.innerHTML = content;
+            const taskDetailsPanel = document.getElementById('taskDetailsPanel');
+            if (taskDetailsPanel) {
+                taskDetailsPanel.classList.add('visible');
+            }
+        }
+    }
+});
+
