@@ -183,7 +183,7 @@
       const row = matrixRows[(holidayOffset + index) % matrixRows.length];
 
 
-      // ✅ NEW: Store task period cells to float them together
+      // NEW: Store task period cells to float them together
       let taskPeriodCells = [];
 
 
@@ -192,9 +192,12 @@
         const cell = row.children[col];
         if (!cell) continue;
 
-        taskPeriodCells.push(cell); // ✅ Track only task period cells
+        taskPeriodCells.push(cell); // Track only task period cells
 
         // Apply styling for the period between actual_start_date and actual_end_date
+        // Compute the days difference for this cell.
+        const cellsDate = addDays(window.startDateForMatrix, col);
+        let diffs = Math.floor((today - cellsDate) / (1000 * 60 * 60 * 24));
         if (col >= actualStartCol && col <= actualEndCol && actualEndCol >= todayCol) {
           cell.classList.add('actual-date-cell');
         }
@@ -237,7 +240,7 @@
         taskPeriodCells.forEach(taskCell => taskCell.style.marginTop = "2px");
         taskPeriodCells.forEach(taskCell => taskCell.style.marginBottom = "2px");
 
-        // ✅ Ensure entire task period style
+        // Ensure entire task period style
         cell.addEventListener("mouseenter", () => {
           // add border top and bottom to the task period cells
           taskPeriodCells.forEach(taskCell => taskCell.style.borderTop = "2px solid white");
@@ -434,35 +437,6 @@
       console.log(`Processing task: ${task.title}`);
       console.log(`Suggested Date: ${suggestedStr}, Actual Start Date: ${actualStartStr}, Actual End Date: ${actualEndStr}`);
     });
-
-    // CSS for pulse animation, glow effect, and unified background color
-    const style = document.createElement('style');
-    style.innerHTML = `
-      @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-        100% { transform: scale(1); }
-      }
-      .actual-date-cell {
-        animation: pulse 2s infinite;
-        box-shadow: 0 0 10px rgba(0, 150, 136, 0.5);
-        background: linear-gradient(45deg,rgba(153, 120, 110, 0.4) 90%,rgb(168, 168, 168) 5%); // Lighter gradient background
-      }
-      .actual-start-date-cell {
-        background-color: #b3e5fc; // Light blue for start date
-      }
-      .actual-end-date-cell {
-        background-color: #ffccbc; // Light orange for end date
-      }
-      .slider {
-        position: fixed;
-        right: -300px; /* Hidden by default */
-        width: 300px;
-        transition: right 0.3s;
-        /* Add more styling as needed */
-      }
-    `;
-    document.head.appendChild(style);
   }
 
   function calculateTodayColumn() {
