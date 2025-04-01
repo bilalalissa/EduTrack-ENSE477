@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Test Edit Task</title>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const taskTypeSelect = document.getElementById('task_type');
+            const taskIdInput = document.getElementById('id');
+            const courseIdInput = document.getElementById('course_id');
+
+            // Function to fetch task details
+            function fetchTaskDetails() {
+                const taskType = taskTypeSelect.value;
+                const taskId = taskIdInput.value;
+                const courseId = courseIdInput.value;
+
+                if (taskId) {
+                    fetch('tasksHandler.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: new URLSearchParams({
+                            action: 'getTask',
+                            task_type: taskType,
+                            id: taskId
+                        })
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                const task = data.task;
+                                document.getElementById('title').value = task.title;
+                                document.getElementById('from_date').value = task.from_date;
+                                document.getElementById('to_date').value = task.to_date;
+                                document.getElementById('status').value = task.status;
+                                document.getElementById('suggested_date').value = task.suggested_date;
+                                document.getElementById('percent').value = task.percent;
+                                document.getElementById('priority').value = task.priority;
+                                document.getElementById('details').value = task.details;
+                                document.getElementById('start_date').value = task.start_date;
+                                document.getElementById('actual_start_date').value = task.actual_start_date;
+                                document.getElementById('actual_end_date').value = task.actual_end_date;
+                            } else {
+                                alert('Failed to fetch task details: ' + data.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching task details:', error);
+                        });
+                }
+            }
+
+            // Event listeners for changes
+            taskTypeSelect.addEventListener('change', fetchTaskDetails);
+            taskIdInput.addEventListener('change', fetchTaskDetails);
+            courseIdInput.addEventListener('change', fetchTaskDetails);
+        });
+    </script>
+</head>
+
+<body>
+    <form action="tasksHandler.php" method="POST">
+        <input type="hidden" name="action" value="editTask">
+
+        <label for="task_type">Task Type:</label>
+        <select id="task_type" name="task_type">
+            <option value="Assignment">Assignment</option>
+            <option value="Quiz">Quiz</option>
+            <option value="Project">Project</option>
+            <option value="MT">MT</option>
+            <option value="Final">Final</option>
+        </select><br>
+
+        <label for="course_id">Course ID:</label>
+        <input type="number" id="course_id" name="course_id" value="1"><br>
+
+        <label for="id">Task ID:</label>
+        <input type="number" id="id" name="id" value="1"><br>
+
+        <label for="title">Title:</label>
+        <input type="text" id="title" name="title" value="Updated Task"><br>
+
+        <label for="from_date">From Date:</label>
+        <input type="date" id="from_date" name="from_date" value="2025-01-11"><br>
+
+        <label for="to_date">To Date:</label>
+        <input type="date" id="to_date" name="to_date" value="2025-01-21"><br>
+
+        <label for="status">Status:</label>
+        <select id="status" name="status">
+            <option value="on_hold">On Hold</option>
+            <option value="in_process">In Process</option>
+            <option value="submitted" selected>Submitted</option>
+        </select><br>
+
+        <label for="suggested_date">Suggested Date:</label>
+        <input type="date" id="suggested_date" name="suggested_date" value="2025-01-16"><br>
+
+        <label for="percent">Percent:</label>
+        <input type="number" id="percent" name="percent" value="75"><br>
+
+        <label for="priority">Priority:</label>
+        <select id="priority" name="priority">
+            <option value="n">Normal</option>
+            <option value="m">Medium</option>
+            <option value="h" selected>High</option>
+        </select><br>
+
+        <label for="details">Details:</label>
+        <textarea id="details" name="details">Updated details</textarea><br>
+
+        <label for="start_date">Start Date:</label>
+        <input type="date" id="start_date" name="start_date" value="2025-01-11"><br>
+
+        <label for="actual_start_date">Actual Start Date:</label>
+        <input type="date" id="actual_start_date" name="actual_start_date" value="2025-01-11"><br>
+
+        <label for="actual_end_date">Actual End Date:</label>
+        <input type="date" id="actual_end_date" name="actual_end_date" value="2025-01-21"><br>
+
+        <button type="submit">Submit</button>
+    </form>
+</body>
+
+</html>

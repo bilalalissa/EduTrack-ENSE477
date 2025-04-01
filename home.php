@@ -164,6 +164,7 @@ function test_input($data)
     </script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="./js/script.js"></script>
+    <script src="./js/todos.js"></script>
 
     <!-- Include CSS and JS for roundSlider -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/roundSlider/1.6.1/roundslider.min.css">
@@ -237,7 +238,7 @@ function test_input($data)
                     }
                     ?>
                 </span>] [EduTrack] - Home</h1>
-            <div>
+            <div class="header-buttons">
                 <button id="exitButton" class="action-button left-button">Exit</button>
                 <a href="Transcribe/index.html">
                     <button type="button">Transcribe</button>
@@ -245,215 +246,286 @@ function test_input($data)
                 <a href="addReminder.html">
                     <button type="button">Add Reminder</button>
                 </a>
+                <a href="tests/index.html">
+                    <button type="button">Test Tasks</button>
+                </a>
+                <div class="schd-controls">
+                    <div class="view-controls">
+                        <button id="todayBtn" class="control-btn">Today</button>
+                        <button id="fullViewBtn" class="control-btn">Full View</button>
+                    </div>
+                    <div class="nav-controls">
+                        <button id="prevBtn" class="control-btn">&lt; Previous</button>
+                        <button id="monthViewBtn" class="control-btn">Current Month</button>
+                        <button id="nextBtn" class="control-btn">Next &gt;</button>
+                    </div>
+                </div>
+                <div class="filter-container">
+                    <button type="button" id="filtersBtn" style="display: block;">Filters</button>
+                    <div class="filters-section" style="display: none;">
+                        <select id="courses-filter">
+                            <option value="all" selected>All Courses</option>
+                        </select>
+                        <select id="tasks-filter">
+                            <option value="all" selected>All Tasks</option>
+                            <option value="quiz">Quiz</option>
+                            <option value="assignment">Assignment</option>
+                            <option value="project">Project</option>
+                            <option value="mt">MT</option>
+                            <option value="final">Final</option>
+                        </select>
+                        <select id="status-filter">
+                            <option value="all" selected>All Status</option>
+                            <option value="on_hold">On Hold</option>
+                            <option value="in_process">In Process</option>
+                            <option value="submitted">Submitted</option>
+                        </select>
+                        <button type="button" id="resetFiltersBtn">Reset</button>
+                        <button type="button" id="closeFiltersBtn">Close</button>
+                    </div>
+                    <!-- Tasks Filter Section -->
+                    <button type="button" id="filterTasksBtn" style="display: block;">Tasks Filter</button>
+                    <div class="filter-tasks-section" style="display: none;">
+                        <select id="tasks-filter-simple">
+                            <option value="all" selected>All Tasks</option>
+                            <option value="quiz">Quiz</option>
+                            <option value="assignment">Assignment</option>
+                            <option value="project">Project</option>
+                            <option value="mt">MT</option>
+                            <option value="final">Final</option>
+                        </select>
+                        <button type="button" id="resetTasksFilterBtn">Reset</button>
+                        <button type="button" id="closeTasksFilterBtn">Close</button>
+                    </div>
+                </div>
             </div>
-
         </header>
 
         <div class="main-container">
-            <div class="left-section">
-                <span class="clsTitle">Quizzes</span>
-                <details>
-                    <!-- show balla icones -->
-                    <summary>
-                        <i class="fas fa-circle ball-red"></i> <!-- Filled ball icon -->
-                        <i class="fas fa-circle ball-yellow"></i> <!-- Filled ball icon -->
-                        <i class="fas fa-circle ball-green"></i> <!-- Filled ball icon -->
-                        |
-                        <!-- | is a course separator  -->
-                        <i class="fas fa-circle ball-red"></i> <!-- Filled ball icon -->
-                        <i class="fas fa-circle ball-yellow"></i> <!-- Filled ball icon -->
-                        <i class="fas fa-circle ball-green"></i> <!-- Filled ball icon -->
-                        <!-- <i class="fas fa-circle"></i> Filled ball icon -->
-                        <!-- <i class="fas fa-adjust"></i> Half-filled ball icon -->
-                    </summary>
-                    <div class="segment">
-                        <div class="subseg">
-                            <sub>Course-1</sub>
-                            <div class="subsubseg">
-                                <sup>Qz-1</sup>
-                                <div class="circular-slider" data-value="">
-                                    <!-- <div class="progress"></div> -->
-                                    <!-- <div class="thumb"></div> -->
-                                    <div class="value-display"></div>
-                                    <input type="range" class="c-rng" min="0" max="15" step="1" value="5" />
-                                </div>
-
-                                <sup>Qz-2</sup>
-                                <div class="circular-slider" data-value="">
-                                    <!-- <div class="progress"></div> -->
-                                    <!-- <div class="thumb"></div> -->
-                                    <div class="value-display"></div>
-                                    <input type="range" class="c-rng" min="0" max="15" step="1" value="8" />
-                                </div>
-
-                                <sup>Qz-3</sup>
-                                <div class="circular-slider" data-value="">
-                                    <!-- <div class="progress"></div> -->
-                                    <!-- <div class="thumb"></div> -->
-                                    <div class="value-display"></div>
-                                    <input type="range" class="c-rng" min="0" max="15" step="1" value="14" />
-                                </div>
-                            </div>
-                        </div>
+            <div class="left-section" style="display: block;">
+                <div class="todos-section" style="display: block;">
+                    <h2>Todos</h2>
+                    <hr style="border: 1px solid #ab261fa4;">
+                    <div class="todo-today">
+                        <h3>Today</h3>
+                        <button type="button" id="exportTodayTodoBtn" style="align-items: right;">Add To Calendar</button>
                     </div>
-                    <div class="line"></div>
-                    <div class="segment">
-                        <div class="subseg">
-                            <sub>Course-2</sub>
-                            <div class="subsubseg">
-                                <sup>Qz-1</sup>
-                                <div class="circular-slider" data-value="">
-                                    <!-- <div class="progress"></div> -->
-                                    <!-- <div class="thumb"></div> -->
-                                    <div class="value-display"></div>
-                                    <input type="range" class="c-rng" min="0" max="15" step="1" value="1" />
-                                </div>
+                    <hr style="border: 1px solid #ab261fa4;">
+                    <div class="todo-tomorrow">
+                        <h3>Tomorrow</h3>
+                        <button type="button" id="exportTomorrowTodoBtn" style="align-items: right;">Add To Calendar</button>
+                    </div>
+                    <hr style="border: 1px solid #ab261fa4;">
+                    <div class="todo-this-week">
+                        <h3>Next 7 Days</h3>
+                        <button type="button" id="exportThisWeekTodoBtn" style="align-items: right;">Add To Calendar</button>
+                    </div>
+                    <hr style="border: 1px solid #ab261fa4;">
+                </div>
+                <div class="spans-section" style="display: none;">
+                    <span class="clsTitle">Quizzes</span>
+                    <details>
+                        <!-- show balla icones -->
+                        <summary>
+                            <i class="fas fa-circle ball-red"></i> <!-- Filled ball icon -->
+                            <i class="fas fa-circle ball-yellow"></i> <!-- Filled ball icon -->
+                            <i class="fas fa-circle ball-green"></i> <!-- Filled ball icon -->
+                            |
+                            <!-- | is a course separator  -->
+                            <i class="fas fa-circle ball-red"></i> <!-- Filled ball icon -->
+                            <i class="fas fa-circle ball-yellow"></i> <!-- Filled ball icon -->
+                            <i class="fas fa-circle ball-green"></i> <!-- Filled ball icon -->
+                            <!-- <i class="fas fa-circle"></i> Filled ball icon -->
+                            <!-- <i class="fas fa-adjust"></i> Half-filled ball icon -->
+                        </summary>
+                        <div class="segment">
+                            <div class="subseg">
+                                <sub>Course-1</sub>
+                                <div class="subsubseg">
+                                    <sup>Qz-1</sup>
+                                    <div class="circular-slider" data-value="">
+                                        <!-- <div class="progress"></div> -->
+                                        <!-- <div class="thumb"></div> -->
+                                        <div class="value-display"></div>
+                                        <input type="range" class="c-rng" min="0" max="15" step="1" value="5" />
+                                    </div>
 
-                                <sup>Qz-2</sup>
-                                <div class="circular-slider" data-value="">
-                                    <!-- <div class="progress"></div> -->
-                                    <!-- <div class="thumb"></div> -->
-                                    <div class="value-display"></div>
-                                    <input type="range" class="c-rng" min="0" max="15" step="1" value="9" />
-                                </div>
+                                    <sup>Qz-2</sup>
+                                    <div class="circular-slider" data-value="">
+                                        <!-- <div class="progress"></div> -->
+                                        <!-- <div class="thumb"></div> -->
+                                        <div class="value-display"></div>
+                                        <input type="range" class="c-rng" min="0" max="15" step="1" value="8" />
+                                    </div>
 
-                                <sup>Qz-3</sup>
-                                <div class="circular-slider" data-value="">
-                                    <!-- <div class="progress"></div> -->
-                                    <!-- <div class="thumb"></div> -->
-                                    <div class="value-display"></div>
-                                    <input type="range" class="c-rng" min="0" max="20" step="1" value="20" />
+                                    <sup>Qz-3</sup>
+                                    <div class="circular-slider" data-value="">
+                                        <!-- <div class="progress"></div> -->
+                                        <!-- <div class="thumb"></div> -->
+                                        <div class="value-display"></div>
+                                        <input type="range" class="c-rng" min="0" max="15" step="1" value="14" />
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="line"></div>
-                </details>
-                <br />
+                        <div class="line"></div>
+                        <div class="segment">
+                            <div class="subseg">
+                                <sub>Course-2</sub>
+                                <div class="subsubseg">
+                                    <sup>Qz-1</sup>
+                                    <div class="circular-slider" data-value="">
+                                        <!-- <div class="progress"></div> -->
+                                        <!-- <div class="thumb"></div> -->
+                                        <div class="value-display"></div>
+                                        <input type="range" class="c-rng" min="0" max="15" step="1" value="1" />
+                                    </div>
 
-                <span class="clsTitle">Assignments</span>
-                <details>
-                    <summary>
-                        <i class="fas fa-circle ball-red"></i> <!-- Filled ball icon -->
-                        <i class="fas fa-circle ball-yellow"></i> <!-- Filled ball icon -->
-                    </summary>
-                    <div class="segment">
-                        <div class="subseg">
-                            <sub>Course-1</sub>
-                            <div class="subsubseg">
-                                <sup>Asmnt-1</sup>
-                                <sup class="duration-attention">2 days</sup>
-                            </div>
-                            <div class="subsubseg">
-                                <sup>Asmnt-2</sup>
-                                <sup class="duration-critical">7 days</sup>
+                                    <sup>Qz-2</sup>
+                                    <div class="circular-slider" data-value="">
+                                        <!-- <div class="progress"></div> -->
+                                        <!-- <div class="thumb"></div> -->
+                                        <div class="value-display"></div>
+                                        <input type="range" class="c-rng" min="0" max="15" step="1" value="9" />
+                                    </div>
+
+                                    <sup>Qz-3</sup>
+                                    <div class="circular-slider" data-value="">
+                                        <!-- <div class="progress"></div> -->
+                                        <!-- <div class="thumb"></div> -->
+                                        <div class="value-display"></div>
+                                        <input type="range" class="c-rng" min="0" max="20" step="1" value="20" />
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="line"></div>
-                </details>
-                <br />
+                        <div class="line"></div>
+                    </details>
+                    <br />
 
-                <span class="clsTitle">Projects</span>
-                <details>
-                    <summary>
-                        <i class="fas fa-circle ball-yellow"></i> <!-- Filled ball icon -->
-                        |
-                        <!-- Course Separator -->
-                        <i class="fas fa-circle ball-green"></i> <!-- Filled ball icon -->
-                    </summary>
-                    <div class="segment">
-                        <div class="subseg">
-                            <sub>Course-1</sub>
-                            <div class="subsubseg">
-                                <sup>Proj-1</sup>
-                                <sup class="duration-critical">7 days</sup>
+                    <span class="clsTitle">Assignments</span>
+                    <details>
+                        <summary>
+                            <i class="fas fa-circle ball-red"></i> <!-- Filled ball icon -->
+                            <i class="fas fa-circle ball-yellow"></i> <!-- Filled ball icon -->
+                        </summary>
+                        <div class="segment">
+                            <div class="subseg">
+                                <sub>Course-1</sub>
+                                <div class="subsubseg">
+                                    <sup>Asmnt-1</sup>
+                                    <sup class="duration-attention">2 days</sup>
+                                </div>
+                                <div class="subsubseg">
+                                    <sup>Asmnt-2</sup>
+                                    <sup class="duration-critical">7 days</sup>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="line"></div>
-                    <div class="segment">
-                        <div class="subseg">
-                            <sub>Course-2</sub>
-                            <div class="subsubseg">
-                                <sup>Proj-1</sup>
-                                <sup class="duration-regular">15 days</sup>
+                        <div class="line"></div>
+                    </details>
+                    <br />
+
+                    <span class="clsTitle">Projects</span>
+                    <details>
+                        <summary>
+                            <i class="fas fa-circle ball-yellow"></i> <!-- Filled ball icon -->
+                            |
+                            <!-- Course Separator -->
+                            <i class="fas fa-circle ball-green"></i> <!-- Filled ball icon -->
+                        </summary>
+                        <div class="segment">
+                            <div class="subseg">
+                                <sub>Course-1</sub>
+                                <div class="subsubseg">
+                                    <sup>Proj-1</sup>
+                                    <sup class="duration-critical">7 days</sup>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="line"></div>
-                </details>
-                <br />
-
-
-                <span class="clsTitle">MTs</span>
-                <details>
-                    <summary>
-                        <i class="fas fa-circle ball-red"></i> <!-- Filled ball icon -->
-                        <i class="fas fa-circle ball-green"></i> <!-- Filled ball icon -->
-                        |
-                        <!-- Course Separator -->
-                        <i class="fas fa-circle ball-green"></i> <!-- Filled ball icon -->
-                    </summary>
-                    <div class="segment">
-                        <div class="subseg">
-                            <sub>Course-1</sub>
-                            <div class="subsubseg">
-                                <sup>MT-1</sup>
-                                <sup class="duration-attention">2 days</sup>
-                            </div>
-                            <div class="subsubseg">
-                                <sup>MT-2</sup>
-                                <sup class="duration-regular">25 days</sup>
+                        <div class="line"></div>
+                        <div class="segment">
+                            <div class="subseg">
+                                <sub>Course-2</sub>
+                                <div class="subsubseg">
+                                    <sup>Proj-1</sup>
+                                    <sup class="duration-regular">15 days</sup>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="line"></div>
-                    <div class="segment">
-                        <div class="subseg">
-                            <sub>Course-2</sub>
-                            <div class="subsubseg">
-                                <sup>MT-1</sup>
-                                <sup class="duration-regular">15 days</sup>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="line"></div>
-                </details>
-                <br />
+                        <div class="line"></div>
+                    </details>
+                    <br />
 
 
-                <span class="clsTitle">Finals</span>
-                <details>
-                    <summary>
-                        <i class="fas fa-circle ball-yellow"></i> <!-- Filled ball icon -->
-                        |
-                        <!-- Course Separator -->
-                        <i class="fas fa-circle ball-green"></i> <!-- Filled ball icon -->
-                    </summary>
-                    <div class="segment">
-                        <div class="subseg">
-                            <sub>Course-1</sub>
-                            <div class="subsubseg">
-                                <sup>Final-1</sup>
-                                <sup class="duration-critical">40 days</sup>
+                    <span class="clsTitle">MTs</span>
+                    <details>
+                        <summary>
+                            <i class="fas fa-circle ball-red"></i> <!-- Filled ball icon -->
+                            <i class="fas fa-circle ball-green"></i> <!-- Filled ball icon -->
+                            |
+                            <!-- Course Separator -->
+                            <i class="fas fa-circle ball-green"></i> <!-- Filled ball icon -->
+                        </summary>
+                        <div class="segment">
+                            <div class="subseg">
+                                <sub>Course-1</sub>
+                                <div class="subsubseg">
+                                    <sup>MT-1</sup>
+                                    <sup class="duration-attention">2 days</sup>
+                                </div>
+                                <div class="subsubseg">
+                                    <sup>MT-2</sup>
+                                    <sup class="duration-regular">25 days</sup>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="line"></div>
-                    <div class="segment">
-                        <div class="subseg">
-                            <sub>Course-2</sub>
-                            <div class="subsubseg">
-                                <sup>Final-1</sup>
-                                <sup class="duration-regular">70 days</sup>
+                        <div class="line"></div>
+                        <div class="segment">
+                            <div class="subseg">
+                                <sub>Course-2</sub>
+                                <div class="subsubseg">
+                                    <sup>MT-1</sup>
+                                    <sup class="duration-regular">15 days</sup>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="line"></div>
-                </details>
-                <br />
+                        <div class="line"></div>
+                    </details>
+                    <br />
 
+
+                    <span class="clsTitle">Finals</span>
+                    <details>
+                        <summary>
+                            <i class="fas fa-circle ball-yellow"></i> <!-- Filled ball icon -->
+                            |
+                            <!-- Course Separator -->
+                            <i class="fas fa-circle ball-green"></i> <!-- Filled ball icon -->
+                        </summary>
+                        <div class="segment">
+                            <div class="subseg">
+                                <sub>Course-1</sub>
+                                <div class="subsubseg">
+                                    <sup>Final-1</sup>
+                                    <sup class="duration-critical">40 days</sup>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="line"></div>
+                        <div class="segment">
+                            <div class="subseg">
+                                <sub>Course-2</sub>
+                                <div class="subsubseg">
+                                    <sup>Final-1</sup>
+                                    <sup class="duration-regular">70 days</sup>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="line"></div>
+                    </details>
+                    <br />
+                </div>
             </div>
 
             <div class="mid-section">
@@ -478,12 +550,17 @@ function test_input($data)
                     <form id="tasksForm" method="POST" action="tasksHandler.php">
                         <!-- Hidden field for start_date (populated from Settings) -->
                         <input type="hidden" name="start_date" id="start_date" value="<?php
+                                                                                        // log the beginning of handling tasksform
+                                                                                        echo ' > home.php: Handling tasksform started';
                                                                                         $stmt = $conn->prepare("SELECT date FROM Settings WHERE user_id = ? AND is_start_date = 1 LIMIT 1");
                                                                                         $stmt->execute([$_SESSION['loggedinID']]);
                                                                                         if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                                                                                             echo htmlspecialchars($row['date']);
                                                                                         }
                                                                                         ?>">
+
+                        <!-- Add this hidden input inside the form -->
+                        <input type="hidden" name="id" id="id" value="">
 
                         <!-- Select Course -->
                         <label for="course_id">Select Course:</label>
@@ -501,8 +578,7 @@ function test_input($data)
 
                         <!-- Select Task Type -->
                         <label for="task_type">Task Type:</label>
-                        <select name="task_type" id="task_type" required>
-                            <option value="">--Select Task Type--</option>
+                        <select id="task_type" name="task_type">
                             <option value="Assignment">Assignment</option>
                             <option value="Quiz">Quiz</option>
                             <option value="Project">Project</option>
@@ -536,7 +612,6 @@ function test_input($data)
                         </select>
                         <br>
 
-                        <!-- TODO to be replaced with the two new actual date fields-->
                         <!-- Suggested Date -->
                         <label for="suggested_date">Suggested Date:</label>
                         <input type="date" name="suggested_date" id="suggested_date" required>
@@ -573,7 +648,7 @@ function test_input($data)
                         <br>
 
                         <!-- Form buttons: Submit and Cancel -->
-                        <button type="submit">Submit Task</button>
+                        <button type="submit" id="submitTaskBtn">Submit Task</button>
                         <button type="button" id="cancelTaskBtn">Cancel</button>
                     </form>
 
@@ -646,8 +721,8 @@ function test_input($data)
 
                     <!-- Holidays Section -->
                     <div class="holidays-section">
-                        <h4>Holidays</h4>
-                        <button id="addHolidayBtn">➕ Add Holiday</button>
+                        <h4>Holidays / Important Dates</h4>
+                        <button id="addHolidayBtn">➕ Add a Date</button>
                         <!-- Holiday Input Fields (Initially Hidden) -->
                         <div id="holidayFormContainer" style="display: none;">
                             <form id="holidayForm">
@@ -672,7 +747,17 @@ function test_input($data)
                         <ul class="holidaysList"></ul>
                     </div>
 
-
+                    <!-- Task Visibility Toggle -->
+                    <div class="task-visibility-section">
+                        <h4>Task Visibility</h4>
+                        <div class="toggle-container">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="hideSubmittedTasks" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span class="toggle-label">Show Submitted Tasks</span>
+                        </div>
+                    </div>
 
                     <br>
 
@@ -684,15 +769,15 @@ function test_input($data)
                     <span>Note:
                         <ul>
                             <li>
-                                <strong><code style="color: #00ff32;"> Selecting a date </code></strong>
+                                <strong><code style="color: #00ff32;"> Selecting a start date </code></strong>
                                 to build the schedule matrix.
                             </li>
                             <li>
-                                <strong><code style="color: orange;"> Unselecting a date </code></strong>
+                                <strong><code style="color: orange;"> Unselecting a start date </code></strong>
                                 will cancel displaying the related schedule matrix.
                             </li>
                             <li>
-                                <strong><code style="color: red;"> Deleting a date </code></strong>
+                                <strong><code style="color: red;"> Deleting a start date </code></strong>
                                 will delete the related schedule matrix.
                             </li>
 
@@ -718,13 +803,14 @@ function test_input($data)
 
 
             <div class="right-section">
-
                 <div class="schd-header">
-                    <!-- Header rows go here -->
+                    <div class="header-matrix">
+                        <!-- Header content will be here -->
+                    </div>
                 </div>
                 <div class="schd-body">
                     <div class="schd-matrix">
-                        <!-- The schedule grid (matrix body) rows will be built here -->
+                        <!-- Matrix content will be here -->
                     </div>
                 </div>
             </div>
@@ -735,13 +821,20 @@ function test_input($data)
         </footer>
     </div>
 
-    <div class="schd-container">
-        <div class="schd-header"></div>
-        <div class="schd-body">
-            <div class="schd-matrix"></div>
-        </div>
-    </div>
+    <!-- On page load, refresh the schedule matrix and update task highlighting -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // On page load, refresh the schedule matrix and update task highlighting
+            if (typeof refreshMatrix === 'function') {
+                refreshMatrix();
+            }
+            if (typeof updateScheduleMatrixTasks === 'function') {
+                updateScheduleMatrixTasks();
+            }
+        });
+    </script>
 
+    <!-- Circular Slider -->
     <script>
         // JavaScript code for the circular slider
         document.addEventListener("DOMContentLoaded", function() {
@@ -787,9 +880,45 @@ function test_input($data)
     </script>
 
 
+
+    <!-- Task Edit Popup -->
+    <!-- <div id="taskEditPopup" class="popup hidden">
+        <div class="popup-content">
+            <h3>Edit Task</h3>
+            <form id="taskEditForm">
+                <label for="taskTitle">Title:</label>
+                <input type="text" id="taskTitle" name="taskTitle" required>
+
+                <label for="taskType">Type:</label>
+                <select id="taskType" name="taskType">
+                    <option value="Assignment">Assignment</option>
+                    <option value="Quiz">Quiz</option>
+                    <option value="Project">Project</option>
+                    <option value="MT">MT</option>
+                    <option value="Final">Final</option>
+                </select>
+
+                <label for="taskFromDate">From Date:</label>
+                <input type="date" id="taskFromDate" name="taskFromDate" required>
+
+                <label for="taskToDate">To Date:</label>
+                <input type="date" id="taskToDate" name="taskToDate" required>
+
+                <button type="submit">Save</button>
+                <button type="button" id="cancelEdit">Cancel</button>
+            </form>
+        </div>
+    </div> -->
+
+
     <script src="./js/script2.js"></script>
     <script src="./js/matrixHighlighter.js"></script>
     <script src="./js/script3.js"></script>
+    <script src="./js/taskEdit.js"></script>
+    <script src="./js/filters.js"></script>
+    <script src="./js/matrixControls.js"></script>
 </body>
 
 </html>
+
+<div id="holdProgress" class="hold-progress hidden"></div>

@@ -1,104 +1,61 @@
-# EduTrack-ENSE477
+# EduTrack - ENSE 477 Capstone Project
 
-ENSE 477 Capstone
+## Table of Contents
 
-In this file:
+- [Project Overview](#project-overview)
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Security Considerations](#security-considerations)
+- [License](#license)
 
-- Project Info
-- Git Manager Info
+## Project Overview
 
-~~ Git Manager ~~
-
-
-# Git Manager
-
-## Overview
-
-Git Manager is a secure and interactive CLI tool for managing Git repositories. It allows users to:
-
-- Initialize Git repositories.
-- Set up remote repositories.
-- Track and manage files.
-- Enable auto-commit.
-- Detect and commit changes automatically.
-- Encrypt repository configurations for security.
-- Enable daemon mode to run Git tracking in the background.
-- View and edit local Git configurations.
-- Remove files from Git tracking.
+EduTrack is a comprehensive academic management application developed as part of the ENSE 477 Capstone Project. It is designed to help students and educators manage academic tasks, schedules, and resources efficiently. The application leverages XAMPP, which includes Apache and MySQL servers, to provide a robust and scalable backend.
 
 ## Features
 
-- **Secure Configuration Storage:** Uses encryption to protect stored Git settings.
-- **Interactive CLI Menu:** Provides a user-friendly interface for managing repositories.
-- **Auto-Commit:** Tracks changes and commits them automatically.
-- **Repository Setup:** Guides the user through Git remote configuration.
-- **File Tracking:** Allows users to choose which files to track or remove from tracking.
-- **Daemon Mode:** Runs Git tracking as a background process so it continues after exiting.
-- **Git Configuration Management:** Allows users to view and edit Git settings.
+- User authentication and authorization
+- Task and schedule management
+- Resource tracking and management
+- Secure data storage and retrieval
+- Interactive user interface
 
 ## Installation
 
-1. Ensure Git and Python 3 are installed.
-2. Install dependencies using:
+1. **Prerequisites**:
+   - Download and install [XAMPP](https://www.apachefriends.org/index.html), which includes Apache and MySQL.
+   - Ensure PHP is installed and configured with XAMPP.
+
+2. **Set Up XAMPP**:
+   - Start the Apache and MySQL services from the XAMPP control panel.
+   - Create a new database in MySQL for EduTrack.
+
+3. **Clone the Repository**:
+
    ```bash
-   pip install cryptography
+   git clone <repository-url>
+   cd <repository-directory>
    ```
-3. Clone this repository or download `git_manager.py`.
-4. Run the script:
-   ```bash
-   python git_manager.py
-   ```
+
+4. **Configure the Application**:
+   - Update the database configuration in `db.php` with your MySQL credentials.
+
+5. **Run the Application**:
+   - Place the application files in the `htdocs` directory of XAMPP.
+   - Access the application via `http://localhost/EduTrack` in your web browser.
 
 ## Usage
 
-Once the script runs, a menu will appear:
+- **User Registration and Login**: Users can register and log in to access personalized features.
+- **Task Management**: Create, update, and track academic tasks and schedules.
+- **Resource Management**: Manage academic resources and materials.
 
-1. **Show Git Configuration:** Displays current Git settings.
-2. **Edit Git Configuration:** Modify local Git settings such as user name or email.
-3. **Remove Files from Tracking:** Remove specific files from Git tracking.
-4. **Edit Application Settings:** Modify repository URL, toggle auto-commit, and enable/disable daemon mode.
-5. **Reset Configuration:** Resets all saved configurations.
-6. **Exit:** Quit the program.
+## Security Considerations
 
-## Configuration Storage
-
-- The script securely stores user settings in `tracked_files.json`, **encrypting** them using a generated key stored in `encryption.key`.
-- The encryption ensures that repository details remain private and cannot be tampered with manually.
-
-## Enabling Auto-Tracking (Daemon Mode)
-
-The Git Manager can run automatically in the background to track changes:
-
-- **Linux/macOS**: Uses `systemd` to run as a background service.
-- **Windows**: Uses `Task Scheduler` to run tracking on system startup.
-
-To enable daemon mode:
-
-1. Open the **Git Manager** menu.
-2. Select **Edit Application Settings**.
-3. Toggle **Daemon Mode** (Enable/Disable).
-
-To stop the daemon mode:
-
-- **Linux/macOS**: Run:
-  ```bash
-  sudo systemctl stop git-tracker
-  sudo systemctl disable git-tracker
-  ```
-- **Windows**: Run:
-  ```bash
-  schtasks /delete /tn GitTracker /f
-  ```
-
-## Notes
-
-- If the `encryption.key` file is lost, the stored configuration cannot be decrypted.
-- The auto-commit feature ensures that any tracked changes are committed and pushed automatically.
-- Use the menu to manage configurations securely.
-
-## Contributions
-
-Contributions are welcome! Fork this repo, make improvements, and submit a pull request.
+- **Data Encryption**: Sensitive data is encrypted to ensure privacy and security.
+- **Access Control**: Implement role-based access control to protect resources.
+- **Regular Updates**: Keep the application and its dependencies updated to mitigate vulnerabilities.
 
 ## License
 

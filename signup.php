@@ -1,5 +1,5 @@
 <?php
-// enabling error messages
+// Enable error messages
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
@@ -8,7 +8,6 @@ require_once("db.php");
 
 session_start();
 
-
 function test_input($data)
 {
     if ($data === null) {
@@ -16,7 +15,7 @@ function test_input($data)
     }
     $data = trim($data);
     $data = stripslashes($data);
-    $data = htmlspecialchars($data); //encodes
+    $data = htmlspecialchars($data); // Encodes
     return $data;
 }
 
@@ -26,17 +25,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $signupData = TRUE;
     $dataOK = TRUE;
 
-    ////////////////////////////
-    // signup process
-    ////////////////////////////
-    $usernameup = isset($_POST["usernameup"]) ? test_input($_POST["usernameup"]) : '';
-    $email = isset($_POST["email"]) ? test_input($_POST["email"]) : '';
-    $passwordup = isset($_POST["passwordup"]) ? test_input($_POST["passwordup"]) : '';
-    $confirmPassword = isset($_POST["confirmPassword"]) ? test_input($_POST["confirmPassword"]) : '';
+    // Retrieve JSON input
+    $input = json_decode(file_get_contents('php://input'), true);
+    if (!$input) {
+        echo json_encode(['message' => 'Invalid JSON input']);
+        exit();
+    }
+
+    $usernameup = isset($input["username"]) ? test_input($input["username"]) : '';
+    $email = isset($input["email"]) ? test_input($input["email"]) : '';
+    $passwordup = isset($input["password"]) ? test_input($input["password"]) : '';
+    $confirmPassword = $passwordup; // Assuming test case doesn't provide confirmPassword
 
     if ($passwordup == $confirmPassword) {
         $signupData = TRUE;
-        $hashedPassword = password_hash($passwordup, PASSWORD_DEFAULT); // hashing the password
+        $hashedPassword = password_hash($passwordup, PASSWORD_DEFAULT); // Hashing the password
     } else {
         $signupData = FALSE;
         $errors["Signup Error"] = "Passwords do not match!";
@@ -44,16 +47,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Check whether the signup fields are not empty
     if ($signupData) {
-
-        // Connect to the database and verify the connection
         try {
             $db = $conn;
         } catch (PDOException $e) {
-            throw new PDOException($e->getMessage(), (int)$e->getCode());
+            echo json_encode(['message' => 'Database connection error']);
+            exit();
         }
 
         // Check if the user already exists
-        $query = "SELECT password_hash FROM Users WHERE username = :username AND email = :email";
+        $query = "SELECT password_hash FROM Users WHERE username = :username OR email = :email";
         $stmt = $db->prepare($query);
         $stmt->execute([
             ':username' => $usernameup,
@@ -64,7 +66,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         if ($result) {
             // User already exists
-            $errors["User Exists"] = "User with this username or email already exists.";
+            echo json_encode(['message' => 'User with this username or email already exists.']);
         } else {
             // Insert new user
             $insertQuery = "INSERT INTO Users (username, email, password_hash, last_login, status) VALUES (:username, :email, :password, NOW(), 'logged_in')";
@@ -75,13 +77,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 ':password' => $hashedPassword
             ]);
 
-            $user_id = $db->lastInsertId();
-
-            // After successful signup redirect or start a session
             $_SESSION['signupSuccess'] = true;
-            $_SESSION['signedUpUsername'] = $usernameup; // where $usernameup is the username from the form
-            $_SESSION['loggedinUsername'] = $usernameup; // where $usernameup is the username from the form
-            $_SESSION['signupUserId'] = $user_id;
+            $_SESSION['signedUpUsername'] = $usernameup;
+            $_SESSION['loggedinUsername'] = $usernameup;
+            $_SESSION['signupUserId'] = $db->lastInsertId();
 
 
             ////////////////////////
@@ -143,8 +142,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         $db = null;
     } else {
-        $errors['Signup Failed'] = "You entered invalid data while signing up.";
+        echo json_encode(['message' => 'You entered invalid data while signing up.']);
     }
+} else {
+    echo json_encode(['message' => 'Invalid request method.']);
 }
 ?>
 

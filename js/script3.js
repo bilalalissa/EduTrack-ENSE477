@@ -18,7 +18,7 @@ window.startDateForMatrix = null;
 // Global addDays function (no extra "+1")
 function addDays(date, days) {
   const result = new Date(date);
-  result.setDate(result.getDate() + days + 1);  // Add 1 for accurate date calculation
+  result.setDate(result.getDate() + days);  // Remove the extra "+1"
   return result;
 }
 window.addDays = addDays; // Expose globally
@@ -50,12 +50,25 @@ document.addEventListener("DOMContentLoaded", async function () {
       const response = await fetch("fetchSettings.php?action=getStartDate");
       const data = await response.json();
       if (data.success && data.start_date) {
-        // Save the raw value as returned by the server.
+        // Save the raw value as returned by the server
         window.startDateRaw = data.start_date;
-        // Create a Date object and adjust it for local timezone.
-        const d = new Date(data.start_date);
-        window.startDateForMatrix = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
-        console.log("Global start date (after fetchStartDate, adjusted):", window.startDateForMatrix);
+
+        // Create a Date object correctly by parsing the date components
+        const [year, month, day] = data.start_date.split('-').map(Number);
+        const startDate = new Date(year, month - 1, day); // month is 0-based in JS
+        startDate.setHours(0, 0, 0, 0);
+        window.startDateForMatrix = startDate;
+
+        console.log("Global start date (after fetchStartDate):", {
+          raw: window.startDateRaw,
+          date: window.startDateForMatrix,
+          isoString: window.startDateForMatrix.toISOString(),
+          components: {
+            year,
+            month,
+            day
+          }
+        });
         return data.start_date;
       } else {
         console.error("No start date found:", data.error || "Empty response");
@@ -81,31 +94,46 @@ document.addEventListener("DOMContentLoaded", async function () {
       return;
     }
 
-    console.log("Creating schedule matrix...");
+    console.log("Creating schedule matrix with start date:", {
+      raw: window.startDateRaw,
+      date: window.startDateForMatrix,
+      isoString: window.startDateForMatrix.toISOString()
+    });
 
-    // Clear existing matrix contents.
+    // Clear existing matrix contents
     schdHeader.innerHTML = "";
     schdMatrix.innerHTML = "";
 
     const totalColumns = 120;
     const totalRows = 300;
+
+    // Normalize today's date to midnight
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     // Build header grid (4 rows)
     for (let row = 0; row < 4; row++) {
       const rowDiv = document.createElement("div");
-      rowDiv.classList.add("matrix-row"); 
+      rowDiv.classList.add("matrix-row");
+
       for (let col = 0; col < totalColumns; col++) {
         const cell = document.createElement("div");
-        cell.classList.add("header-cell"); 
-        const currentDate = addDays(window.startDateForMatrix, col);
+        cell.classList.add("header-cell");
+
+        // Create a new date object for each column
+        const currentDate = new Date(window.startDateForMatrix);
+        currentDate.setDate(window.startDateForMatrix.getDate() + col);
+        currentDate.setHours(0, 0, 0, 0);
+
         if (row === 0) {
-          // Show month names or week numbers.
+          // First day of month or Sunday (for week numbers)
           if (currentDate.getDate() === 1) {
             cell.textContent = currentDate.toLocaleString("default", { month: "short" });
             cell.classList.add("month-highlight");
           } else if (currentDate.getDay() === 0) {
-            cell.textContent = `W${getWeekNumber(currentDate)}`;
+            // Week numbers start from 1
+            const weekNum = Math.floor(col / 7) + 1;
+            cell.textContent = `W${weekNum}`;
             cell.classList.add("week-highlight");
           }
         } else if (row === 1) {
@@ -115,42 +143,41 @@ document.addEventListener("DOMContentLoaded", async function () {
         } else if (row === 3) {
           cell.textContent = currentDate.getDate();
         }
-        // highlight weekends in header only
-        // (1st row, 2nd row, 3rd row)
-        if (row === 0 || row === 1 || row === 2 || row === 3) {
-          if (currentDate.getDay() === 0 || currentDate.getDay() === 6) {
-            cell.classList.add("weekend-cell");
-          }
+
+        // Highlight weekends in header only
+        if (currentDate.getDay() === 0 || currentDate.getDay() === 6) {
+          cell.classList.add("weekend-cell");
         }
-        // highlight month start
-        if (row === 0 || row === 3) {
-          if (cell.classList.contains("month-highlight")) {
-            cell.style.backgroundColor = "rgba(255, 60, 0, 0.2)";
-          }
+
+        // Highlight month start
+        if ((row === 0 || row === 3) && cell.classList.contains("month-highlight")) {
+          cell.style.backgroundColor = "rgba(255, 60, 0, 0.2)";
         }
+
+        // Highlight current month
         if (row === 0 && currentDate.getMonth() === today.getMonth()) {
           cell.classList.add("current-month");
         }
-        // highlight current week, in header's 1st row only
+
+        // Highlight current week
         if (getWeekNumber(currentDate) === getWeekNumber(today)) {
           cell.classList.add("current-week");
         }
-        if (currentDate.toDateString() === today.toDateString()) {
+
+        // Highlight current day
+        if (currentDate.getTime() === today.getTime()) {
           cell.classList.add("current-day");
-          cell.style.borderLeft = "2px  rgb(255, 0, 0, 0.3)";
-          cell.style.borderRight = "2px  rgb(255, 0, 0, 0.3)";
+          cell.style.borderLeft = "2px solid rgba(255, 0, 0, 0.3)";
+          cell.style.borderRight = "2px solid rgba(255, 0, 0, 0.3)";
           cell.style.borderTop = "none";
           cell.style.borderBottom = "none";
           cell.style.color = "rgb(255, 60, 0)";
-          // white shadow on current day text
-          // cell.style.textShadow = "1px 1px 2px rgb(255, 255, 255, 0.8)";
-          cell.style.backgroundColor = "rgb(255, 0, 0, 0.3)";
-          // cell.style.fontWeight = "bold";
+          cell.style.backgroundColor = "rgba(255, 0, 0, 0.3)";
           if (row === 0) {
-            // show week number in header's 1st row only
-            cell.textContent = `Wk${getWeekNumber(currentDate)}`;
+            cell.textContent = `W${getWeekNumber(currentDate)}`;
           }
         }
+
         rowDiv.appendChild(cell);
       }
       schdHeader.appendChild(rowDiv);
@@ -159,27 +186,30 @@ document.addEventListener("DOMContentLoaded", async function () {
     // Build matrix grid (body)
     for (let row = 0; row < totalRows; row++) {
       const rowDiv = document.createElement("div");
-      rowDiv.classList.add("matrix-row"); 
+      rowDiv.classList.add("matrix-row");
+
       for (let col = 0; col < totalColumns; col++) {
         const cell = document.createElement("div");
-        cell.classList.add("matrix-cell"); 
-        const currentDate = addDays(window.startDateForMatrix, col);
-        if (currentDate.toDateString() === today.toDateString()) {
-          // if the cell is not a holiday
+        cell.classList.add("matrix-cell");
+
+        // Use the same date calculation method as header
+        const currentDate = new Date(window.startDateForMatrix);
+        currentDate.setDate(window.startDateForMatrix.getDate() + col);
+        currentDate.setHours(0, 0, 0, 0);
+
+        // Highlight current day
+        if (currentDate.getTime() === today.getTime()) {
           if (!cell.classList.contains("holiday-cell")) {
             cell.classList.add("current-day");
-            cell.style.borderLeft = "2px  rgb(255, 0, 0, 0.3)";
-            cell.style.borderRight = "2px  rgb(255, 0, 0, 0.3)";
+            cell.style.borderLeft = "2px solid rgba(255, 0, 0, 0.3)";
+            cell.style.borderRight = "2px solid rgba(255, 0, 0, 0.3)";
             cell.style.borderTop = "none";
             cell.style.borderBottom = "none";
             cell.style.color = "rgb(255, 0, 0)";
-
-            cell.style.backgroundColor = "rgb(255, 0, 0, 0.3)";
+            cell.style.backgroundColor = "rgba(255, 0, 0, 0.3)";
           }
         }
-        // if (currentDate.getDay() === 0 || currentDate.getDay() === 6) {
-        //   cell.classList.add("weekend-cell");
-        // }
+
         rowDiv.appendChild(cell);
       }
       schdMatrix.appendChild(rowDiv);
@@ -187,9 +217,12 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 
   function getWeekNumber(date) {
-    if (!window.startDateForMatrix) return 0;
-    const diffTime = date - window.startDateForMatrix;
-    return Math.floor(diffTime / (7 * 24 * 60 * 60 * 1000)) + 1;
+    if (!window.startDateForMatrix) return 1;
+    const startDate = new Date(window.startDateForMatrix);
+    startDate.setHours(0, 0, 0, 0);
+    const diffTime = date.getTime() - startDate.getTime();
+    const weekNum = Math.floor(diffTime / (7 * 24 * 60 * 60 * 1000)) + 1;
+    return Math.max(1, weekNum); // Ensure it never returns less than 1
   }
 
   function scrollMatrixOneWeekBeforeToday() {
@@ -200,11 +233,24 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 
   // refreshMatrix() fetches the start date and rebuilds the grid.
+  // async function refreshMatrix() {
+  //   await fetchStartDate();
+  //   if (window.startDateForMatrix) {
+  //     createScheduleMatrix();
+  //     setTimeout(scrollMatrixOneWeekBeforeToday, 500);
+  //   }
+  // }
+  // ----- Modified refreshMatrix function -----
   async function refreshMatrix() {
     await fetchStartDate();
     if (window.startDateForMatrix) {
       createScheduleMatrix();
-      setTimeout(scrollMatrixOneWeekBeforeToday, 500);
+      // Instead of calling a local scroll function, call the global one from script2.js
+      setTimeout(function () {
+        if (window.scrollMatrixToWeekBeforeToday) {
+          window.scrollMatrixToWeekBeforeToday();
+        }
+      }, 500);
     }
   }
 
@@ -484,7 +530,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   // -----------------------------------------
   async function fetchTasksAndHighlight() {
     // -------------------- debugging --------------------
-    console.log("fetchTasksAndHighlight: Starting tasks fetch...");
+    console.log("\n\nscript3.js/\nfetchTasksAndHighlight: \n > Starting tasks fetch...");
     try {
       const response = await fetch('tasksHandler.php', {
         method: 'POST',

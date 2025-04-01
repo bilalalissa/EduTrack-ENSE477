@@ -93,18 +93,80 @@
 
   // Clear any previously applied task-cell highlighting
   function clearTaskCellHighlights() {
-    const matrixRows = document.querySelectorAll(".schd-body .schd-matrix .matrix-row");
+    const matrixRows = document.querySelectorAll(".schd-body .schd-matrix .matrix-row:not(.schd-header)");
+
+    // Calculate today's column index
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startDate = window.startDateForMatrix;
+    const todayCol = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+
     matrixRows.forEach(row => {
-      Array.from(row.children).forEach(cell => {
-        if (cell.classList.contains("task-cell")) {
-          cell.classList.remove("task-cell");
-          cell.style.backgroundColor = "";
-          cell.style.border = "";
-          cell.style.overflow = "";
-          cell.style.whiteSpace = "";
-          cell.style.textAlign = "";
+      Array.from(row.children).forEach((cell, colIndex) => {
+        // Skip holiday cells completely
+        if (cell.classList.contains('holiday-cell-yes') ||
+          cell.classList.contains('holiday-cell-no')) {
+          return;
         }
+
+        // For current day cells, apply ONLY the current day styling
+        if (colIndex === todayCol) {
+          cell.className = 'matrix-cell current-day';
+          cell.style.cssText = `
+            border-left: 2px solid rgba(255, 0, 0, 0.3);
+            border-right: 2px solid rgba(255, 0, 0, 0.3);
+            border-top: none;
+            border-bottom: none;
+            color: rgb(255, 0, 0);
+            background-color: rgba(255, 0, 0, 0.3);
+            pointer-events: none;
+            min-height: 34px;
+            height: 34px;
+            margin: 0;
+            padding: 0;
+            width: 40px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 1;
+          `;
+          cell.textContent = '';
+          return;
+        }
+
+        // For regular cells, reset to default state
+        cell.className = 'matrix-cell';
+        cell.style.cssText = `
+          border: 1px solid #46464632;
+          min-height: 28px;
+          max-height: 32px;
+          height: 30px;
+          width: 40px;
+          margin: 2px 0;
+          padding: 2px;
+          box-sizing: border-box;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background-color: transparent;
+          position: relative;
+          z-index: 2;
+        `;
+        cell.textContent = '';
+
+        // Remove task-related attributes
+        cell.removeAttribute('data-task-id');
+        cell.removeAttribute('data-task-type');
+        cell.removeAttribute('data-task-title');
+        cell.removeAttribute('data-status');
       });
+
+      // Reset row attributes but keep matrix-row class
+      row.className = 'matrix-row';
+      row.style.display = '';
+      row.removeAttribute('data-task-status');
     });
   }
 
@@ -131,9 +193,11 @@
     // Clear any previous task highlighting.
     clearTaskCellHighlights();
 
+    // Normalize today's date to midnight
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     const totalColumns = matrixRows[0].children.length;
-    // Use an offset so tasks start on rows after holiday rows.
     const holidayOffset = window.holidayRowsCount || 0;
 
     // Helper: Convert a Date object to a string "YYYY-MM-DD"
@@ -144,173 +208,254 @@
       return `${year}-${month}-${day}`;
     }
 
-    // Ensure todayCol is defined
-    const todayCol = calculateTodayColumn(); // Define this function to calculate the column for today
+    // Calculate today's column
+    const todayCol = (() => {
+      const startDate = new Date(window.startDateForMatrix);
+      startDate.setHours(0, 0, 0, 0);
+      return Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    })();
+
+    tasks.sort((a, b) => new Date(a.from_date) - new Date(b.from_date));
 
     tasks.forEach((task, index) => {
-      // TODO: fix delay in calculating date for current week, and days difference of haighlighted cells
-      // TODO: fix the issue of suggested date's cell style not being applied correctly
+      console.log('Processing task:', task);
 
-      // Compute the course name once for the task.
+      const taskType = ((task.task_type || task.type || "").toString()).toLowerCase();
+      console.log('Task type determined:', taskType);
+
       const courseName = (window.courseMap && window.courseMap[task.course_id]) ? window.courseMap[task.course_id] : "";
 
-      // Get task date strings.
+      // Get task date strings
       const fromDateStr = task.from_date;
       const toDateStr = task.to_date;
       const suggestedStr = task.suggested_date;
       const actualStartStr = task.actual_start_date;
       const actualEndStr = task.actual_end_date;
 
-      // Find the column indexes that exactly match the task's date strings.
+      // Find column indexes with normalized date comparison
       let fromCol = -1, toCol = -1, suggestedCol = -1, actualStartCol = -1, actualEndCol = -1;
       for (let col = 0; col < totalColumns; col++) {
         const cellDate = addDays(window.startDateForMatrix, col);
+        cellDate.setHours(0, 0, 0, 0);
         const cellDateStr = dateToYMD(cellDate);
-        if (cellDateStr === fromDateStr) { fromCol = col; }
-        if (cellDateStr === toDateStr) { toCol = col; }
-        if (cellDateStr === suggestedStr) { suggestedCol = col; }
-        if (cellDateStr === actualStartStr) { actualStartCol = col; }
-        if (cellDateStr === actualEndStr) { actualEndCol = col; }
+
+        if (cellDateStr === fromDateStr) fromCol = col;
+        if (cellDateStr === toDateStr) toCol = col;
+        if (cellDateStr === suggestedStr) suggestedCol = col;
+        if (cellDateStr === actualStartStr) actualStartCol = col;
+        if (cellDateStr === actualEndStr) actualEndCol = col;
       }
 
-      // Validate task date strings.
       if (fromCol === -1 || toCol === -1 || toCol < fromCol || toCol >= totalColumns) {
         console.warn(`Task "${task.title}" has a from_date or to_date out of matrix range.`);
         return;
       }
 
-      // Use a row offset so tasks appear after holiday rows.
       const row = matrixRows[(holidayOffset + index) % matrixRows.length];
-
-
-      // NEW: Store task period cells to float them together
       let taskPeriodCells = [];
 
-
-      // Loop over the columns in the task's period.
       for (let col = fromCol; col <= toCol; col++) {
         const cell = row.children[col];
-        if (!cell) continue;
+        taskPeriodCells.push(cell);
 
-        taskPeriodCells.push(cell); // Track only task period cells
+        // Compute days difference with normalized dates
+        const cellDate = addDays(window.startDateForMatrix, col);
+        cellDate.setHours(0, 0, 0, 0);
+        const diff = Math.floor((cellDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+        let diffText = "";
+        if (diff === 0) {
+          cell.style.color = "red";
+          cell.style.fontWeight = "bold";
+          diffText = "0";
+        } else if (diff < 0) {
+          diffText = `${diff}`; // past days
+        } else {
+          diffText = `+${diff}`; // future days
+          if (diff <= 2) {
+            cell.style.color = "red";
+            cell.style.fontWeight = "bold";
+            cell.style.fontSize = "25px";
+          }
+        }
+
+        // Add task-related attributes to the cell and row
+        cell.classList.add('task-cell', taskType);
+        cell.setAttribute('data-task-id', task.id);
+        cell.setAttribute('data-task-type', taskType);
+        cell.setAttribute('data-task-title', task.title);
+        cell.setAttribute('data-status', task.status);
+        row.setAttribute('data-task-status', task.status);
+
+        // Set background color based on task type
+        let bgColor = "";
+        let textColor = "";
+        let fontSize = "";
+        let fontWeight = "";
+        let zIndex = "";
+        switch (taskType) {
+          case "assignment":
+            bgColor = "rgba(56, 121, 143, 0.8)"; // Light Blue-greenish with transparency
+            textColor = "#FFFFFF";
+            fontSize = "12px";
+            fontWeight = "normal";
+            zIndex = "10";
+            break;
+          case "quiz":
+            bgColor = "rgba(103, 161, 103, 0.8)"; // Light Green with transparency
+            textColor = "#FFFFFF";
+            fontSize = "12px";
+            fontWeight = "normal";
+            zIndex = "10";
+            break;
+          case "project":
+            bgColor = "rgba(60, 87, 208, 0.8)"; // Light blue with transparency
+            textColor = "#FFFFFF";
+            fontSize = "12px";
+            fontWeight = "normal";
+            zIndex = "10";
+            break;
+          case "mt":
+            bgColor = "rgba(255, 182, 193, 0.8)"; // Light Pink with transparency
+            textColor = "#000000";
+            fontSize = "12px";
+            fontWeight = "normal";
+            zIndex = "10";
+            break;
+          case "final":
+            bgColor = "rgba(216, 112, 112, 0.8)"; // Light Gray with transparency
+            textColor = "#000000";
+            fontSize = "12px";
+            fontWeight = "normal";
+            zIndex = "10";
+            break;
+          default:
+            bgColor = "rgba(255, 255, 255, 0.8)";
+            textColor = "#000000";
+            fontSize = "12px";
+            fontWeight = "normal";
+            zIndex = "10";
+            console.warn(`Unknown task type: ${taskType} for task:`, task);
+        }
+
+        // Check visibility setting for submitted tasks
+        const showSubmittedTasks = localStorage.getItem('showSubmittedTasks') !== 'false';
+        if (task.status === 'submitted' && !showSubmittedTasks) {
+          row.style.display = 'none'; // Hide the entire row
+          cell.style.backgroundColor = 'transparent';
+          return;
+        }
+
+        // Apply base styles to the cell
+        cell.style.cssText = `
+          background-color: ${bgColor};
+          color: ${textColor};
+          font-size: ${fontSize};
+          font-weight: ${fontWeight};
+          z-index: ${zIndex};
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          min-height: 28px;
+          max-height: 32px;
+          height: 30px;
+          width: 40px;
+          margin: 2px 0;
+          padding: 2px;
+          box-sizing: border-box;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          white-space: normal;
+          word-wrap: break-word;
+          position: relative;
+          transition: all 0.2s ease-in-out;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        `;
+
+        // Apply border radius only to outer corners of first and last cells
+        if (col === fromCol) {
+          cell.style.borderTopLeftRadius = '3px';
+          cell.style.borderBottomLeftRadius = '3px';
+        } else if (col === toCol) {
+          cell.style.borderTopRightRadius = '3px';
+          cell.style.borderBottomRightRadius = '3px';
+        }
+
+        // Add hover effects using event delegation
+        const handleMouseEnter = () => {
+          taskPeriodCells.forEach((taskCell, idx) => {
+            taskCell.style.backgroundColor = bgColor.replace('0.8)', '1)');
+            taskCell.style.borderTop = "2px solid rgba(255, 255, 255, 0.8)";
+            taskCell.style.borderBottom = "2px solid rgba(255, 255, 255, 0.8)";
+            taskCell.style.transform = "translateY(-1px)";
+            taskCell.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.2)";
+            taskCell.style.filter = "brightness(1.1)";
+
+            // Maintain border radius on hover
+            if (idx === 0) {
+              taskCell.style.borderTopLeftRadius = '3px';
+              taskCell.style.borderBottomLeftRadius = '3px';
+            } else if (idx === taskPeriodCells.length - 1) {
+              taskCell.style.borderTopRightRadius = '3px';
+              taskCell.style.borderBottomRightRadius = '3px';
+            }
+          });
+          taskPeriodCells[0].style.borderLeft = "2px solid rgba(255, 255, 255, 0.8)";
+          taskPeriodCells[taskPeriodCells.length - 1].style.borderRight = "2px solid rgba(255, 255, 255, 0.8)";
+
+          // Add glow effect
+          taskPeriodCells.forEach((taskCell, idx) => {
+            if (idx === 0) {
+              taskCell.style.boxShadow = "0 4px 8px rgba(255, 255, 255, 0.2), -2px 0 4px rgba(255, 255, 255, 0.1)";
+            } else if (idx === taskPeriodCells.length - 1) {
+              taskCell.style.boxShadow = "0 4px 8px rgba(255, 255, 255, 0.2), 2px 0 4px rgba(255, 255, 255, 0.1)";
+            } else {
+              taskCell.style.boxShadow = "0 4px 8px rgba(255, 255, 255, 0.2)";
+            }
+          });
+        };
+
+        const handleMouseLeave = () => {
+          taskPeriodCells.forEach((taskCell, idx) => {
+            taskCell.style.backgroundColor = bgColor;
+            taskCell.style.borderTop = "1px solid rgba(255, 255, 255, 0.1)";
+            taskCell.style.borderBottom = "1px solid rgba(255, 255, 255, 0.1)";
+            taskCell.style.transform = "translateY(0)";
+            taskCell.style.filter = "brightness(1)";
+
+            // Reset box shadow but maintain border radius
+            if (idx === 0) {
+              taskCell.style.boxShadow = "0 1px 2px rgba(0, 0, 0, 0.1)";
+              taskCell.style.borderTopLeftRadius = '3px';
+              taskCell.style.borderBottomLeftRadius = '3px';
+            } else if (idx === taskPeriodCells.length - 1) {
+              taskCell.style.boxShadow = "0 1px 2px rgba(0, 0, 0, 0.1)";
+              taskCell.style.borderTopRightRadius = '3px';
+              taskCell.style.borderBottomRightRadius = '3px';
+            } else {
+              taskCell.style.boxShadow = "0 1px 2px rgba(0, 0, 0, 0.1)";
+              taskCell.style.borderRadius = '0';
+            }
+          });
+          taskPeriodCells[0].style.borderLeft = "1px solid rgba(255, 255, 255, 0.1)";
+          taskPeriodCells[taskPeriodCells.length - 1].style.borderRight = "1px solid rgba(255, 255, 255, 0.1)";
+        };
+
+        cell.addEventListener("mouseenter", handleMouseEnter);
+        cell.addEventListener("mouseleave", handleMouseLeave);
+
+        // Set cell title for tooltip
+        cell.title = `${task.title} - ${courseName}`;
 
         // Apply styling for the period between actual_start_date and actual_end_date
-        // Compute the days difference for this cell.
-        const cellsDate = addDays(window.startDateForMatrix, col);
-        let diffs = Math.floor((today - cellsDate) / (1000 * 60 * 60 * 24));
         if (col >= actualStartCol && col <= actualEndCol && actualEndCol >= todayCol) {
           cell.classList.add('actual-date-cell');
         }
 
-        // Set a background color based on the task type.
-        let bgColor = "";
-        switch (task.task_type.toLowerCase()) {
-          case "assignment":
-            bgColor = "#38798f"; // Light Blue-greenish
-            break;
-          case "quiz":
-            bgColor = "#67a167"; // Light Green
-            break;
-          case "project":
-            bgColor = "#3c57d0"; // Light blue
-            break;
-          case "mt":
-            bgColor = "#FFB6C1"; // Light Pink
-            break;
-          case "final":
-            bgColor = "#d87070"; // Light Gray
-            break;
-          default:
-            bgColor = "#FFFFFF";
-        }
-        cell.style.backgroundColor = bgColor;
-        // Ensure text is contained and can wrap if needed.
-        cell.style.overflow = "hidden";
-        cell.style.whiteSpace = "normal";
-        cell.style.wordWrap = "break-word";
-        cell.style.position = "relative";
-        cell.style.zIndex = 10;
-        // For consistency, we'll set the text color here.
-        cell.style.color = "black";
-        cell.style.border = "none";
-        // Set the tooltip to show the task and course names.
-        cell.title = ` ${task.title} - ${courseName} `;
-
-        // Add marginTop and marginBottom to the task period cells
-        taskPeriodCells.forEach(taskCell => taskCell.style.marginTop = "2px");
-        taskPeriodCells.forEach(taskCell => taskCell.style.marginBottom = "2px");
-
-        // Ensure entire task period style
-        cell.addEventListener("mouseenter", () => {
-          // add border top and bottom to the task period cells
-          taskPeriodCells.forEach(taskCell => taskCell.style.borderTop = "2px solid white");
-          taskPeriodCells.forEach(taskCell => taskCell.style.borderBottom = "2px solid white");
-          // add border left to first cell of the task period
-          taskPeriodCells[0].style.borderLeft = "2px solid white";
-          // add top-left, bottom-left border radius to first cell of the task period
-          taskPeriodCells[0].style.borderTopLeftRadius = "5px";
-          taskPeriodCells[0].style.borderBottomLeftRadius = "5px";
-          // add border right to last cell of the task period
-          taskPeriodCells[taskPeriodCells.length - 1].style.borderRight = "2px solid white";
-          // add top-right, bottom-right border radius to last cell of the task period
-          taskPeriodCells[taskPeriodCells.length - 1].style.borderTopRightRadius = "5px";
-          taskPeriodCells[taskPeriodCells.length - 1].style.borderBottomRightRadius = "5px";
-
-          // taskPeriodCells.forEach(taskCell => taskCell.classList.add("sellected-task-period"));
-        });
-        cell.addEventListener("mouseleave", () => {
-          // remove border top and bottom to the task period cells
-          taskPeriodCells.forEach(taskCell => taskCell.style.borderTop = "");
-          taskPeriodCells.forEach(taskCell => taskCell.style.borderBottom = "");
-          // remove border left to first cell of the task period
-          taskPeriodCells[0].style.borderLeft = "";
-          // remove top-left, bottom-left border radius to first cell of the task period
-          taskPeriodCells[0].style.borderTopLeftRadius = "";
-          taskPeriodCells[0].style.borderBottomLeftRadius = "";
-          // remove border right to last cell of the task period
-          taskPeriodCells[taskPeriodCells.length - 1].style.borderRight = "";
-          // remove top-right, bottom-right border radius to last cell of the task period
-          taskPeriodCells[taskPeriodCells.length - 1].style.borderTopRightRadius = "";
-          taskPeriodCells[taskPeriodCells.length - 1].style.borderBottomRightRadius = "";
-
-          // taskPeriodCells.forEach(taskCell => taskCell.classList.remove("sellected-task-period"));
-        });
-
-        // Compute the days difference for this cell.
-        const cellDate = addDays(window.startDateForMatrix, col);
-        let diff = Math.floor((today - cellDate) / (1000 * 60 * 60 * 24));
-        let diffText = "";
-        if (diff === 0) { // today
-          cell.style.color = "red";
-          cell.style.fontWeight = "bold";
-          diffText = "0";
-        } else if (diff > 0) {  // past days (after today, negative)
-          diffText = `-${diff}`; // after today
-        } else {
-          diffText = `${Math.abs(diff)}`; // future days (before today)
-          if (Math.abs(diff) <= 2) {
-            cell.style.color = "red";
-            cell.style.fontWeight = "bold";
-            cell.style.fontsize = "25px";
-          } else if (col === suggestedCol && Math.abs(diff) < today) {  // suggested date cell
-            cell.classList.add("pre-suggested-day"); // Apply pre suggested date texture course
-            if (Math.abs(diff) >= 1 && Math.abs(diff) <= 5) {
-              cell.classList.add("suggested-day"); // Apply suggested date texture course
-              cell.style.color = "black";
-            }
-          }
-        }
-
         // --- First cell of the task period ---
         if (col === fromCol) {
-          // Set the tooltip to show the task and course names.
-          cell.title = ` ${task.title} - ${courseName} `;
-          // Center the text.
           cell.style.textAlign = "center";
-          // Optionally adjust width.
-          // cell.style.width = "50px";
           cell.style.zIndex = 50;
-
 
           // Calculate the difference in days between today and the task's end date
           const cellDate = addDays(window.startDateForMatrix, col);
@@ -318,28 +463,19 @@
 
           // If last cell of the task period is larger than and equal to today
           if (diff >= 0 && toCol <= today) {
-            // Show the days difference in the cell.
             cell.textContent = diffText;
           } else {
-            // don't wrap text
-            // cell.style.whiteSpace = "nowrap";
-            // Optionally adjust width.
-            // cell.style.width = "100px";
             cell.textContent = "";
           }
         }
 
         // --- 3rd cell of the task period ---
         if (toCol - fromCol >= 5 && col === fromCol + 2) {
-          // don't wrap text
           cell.style.whiteSpace = "nowrap";
-          // Set the tooltip to show the task and course names.
-          cell.title = ` ${task.title} - ${courseName} `;
-          // Center the text.
           cell.style.textAlign = "center";
-          // Optionally adjust width.
           cell.style.width = "150px";
           cell.style.zIndex = 50;
+
           // If last cell of the task period is larger than and equal to today
           if (toCol <= today) {
             cell.textContent = ` ${task.title} - ${courseName} `;
@@ -351,24 +487,14 @@
 
         // --- For cells matching the suggested date ---
         if (col === suggestedCol) {
-          // Set the tooltip to show the task and course names.
-          cell.title = ` ${task.title} - ${courseName} `;
           cell.style.textAlign = "center";
           cell.style.padding = "2px";
           cell.style.zIndex = 50;
-
-          // Calculate the difference in days between today and the task's suggested date
-          const cellDate = addDays(window.startDateForMatrix, col);
-          let diff = Math.floor((cellDate - today) / (1000 * 60 * 60 * 24));
-
-          // Display the days difference
           cell.textContent = diffText;
         }
 
         // --- For cells matching the last cell ---
         if (col === toCol) {
-          // Set the tooltip to show the task and course names.
-          cell.title = ` ${task.title} - ${courseName} `;
           cell.style.textAlign = "center";
           cell.style.padding = "2px";
           cell.style.zIndex = 50;
@@ -379,62 +505,34 @@
 
           // If last cell of the task period is larger than and equal to today
           if (diff <= 0) {
-            taskPeriodCells.forEach(taskCell => taskCell.style.backgroundColor = "rgba(196, 196, 196, 0.1)");
-            taskPeriodCells.forEach(taskCell => taskCell.style.color = "rgba(255, 255, 255, 0.5)");
-            taskPeriodCells.forEach(taskCell => taskCell.style.fontSize = "12px");
+            taskPeriodCells.forEach(taskCell => {
+              taskCell.style.backgroundColor = "rgba(196, 196, 196, 0.1)";
+              taskCell.style.color = "rgba(255, 255, 255, 0.5)";
+              taskCell.style.fontSize = "12px";
+            });
             cell.textContent = `${task.title} | ${courseName}`;
           } else {
-            // Append the days difference.
             cell.textContent = diff;
           }
         }
 
-        // --- For cells matching the actual start date ---
-        if (col === actualStartCol && actualEndCol >= todayCol) {
-          // Set the tooltip to show the task and course names.
-          cell.title = ` ${task.title} - ${courseName} `;
-          cell.style.textAlign = "center";
-          cell.style.padding = "2px";
-          cell.style.zIndex = 50;
-
-          // Calculate the difference in days between today and the task's start date
-          const cellDate = addDays(window.startDateForMatrix, col);
-          let diff = Math.floor((cellDate - today) / (1000 * 60 * 60 * 24));
-
-          // Display the days difference
-          cell.textContent = diffText;
-
-          // Add a class for styling actual date cells
-          cell.classList.add('actual-start-date-cell');
-        }
-
-        // --- For cells matching the actual end date ---
-        if (col === actualEndCol && actualEndCol >= todayCol) {
-          // Set the tooltip to show the task and course names.
-          cell.title = ` ${task.title} - ${courseName} `;
-          cell.style.textAlign = "center";
-          cell.style.padding = "2px";
-          cell.style.zIndex = 50;
-
-          // Calculate the difference in days between today and the task's end date
-          const cellDate = addDays(window.startDateForMatrix, col);
-          let diff = Math.floor((cellDate - today) / (1000 * 60 * 60 * 24));
-
-          // Display the days difference
-          cell.textContent = diffText;
-
-          // Add a class for styling actual date cells
-          cell.classList.add('actual-end-date-cell');
-        }
-
-        // Add a class for styling actual date cells
+        // --- For cells matching the actual start/end dates ---
         if ((col === actualStartCol || col === actualEndCol) && actualEndCol >= todayCol) {
           cell.classList.add('actual-date-cell');
+          if (col === actualStartCol) {
+            cell.classList.add('actual-start-date-cell');
+          }
+          if (col === actualEndCol) {
+            cell.classList.add('actual-end-date-cell');
+          }
+          cell.style.textAlign = "center";
+          cell.style.padding = "2px";
+          cell.style.zIndex = 50;
+          cell.textContent = diffText;
         }
       }
 
-      // Add console logs to verify date processing
-      console.log(`Processing task: ${task.title}`);
+      console.log(`Highlighted ${taskPeriodCells.length} cells for task "${task.title}" (${taskType})`);
       console.log(`Suggested Date: ${suggestedStr}, Actual Start Date: ${actualStartStr}, Actual End Date: ${actualEndStr}`);
     });
   }
@@ -447,6 +545,8 @@
 
   // ───────────────────────────────────────────────
   // Expose the functions globally so they can be called from elsewhere.
+  window.clearHolidayCellHighlights = clearHolidayCellHighlights;
+  window.clearTaskCellHighlights = clearTaskCellHighlights;
   window.highlightHolidayRows = highlightHolidayRows;
   window.highlightTaskRows = highlightTaskRows;
 })();

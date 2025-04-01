@@ -7,6 +7,7 @@ const schdBtn = document.getElementById('schdBtn');
 const taskBtn = document.getElementById('taskBtn');
 const coursesBtn = document.getElementById('coursesBtn');
 const settingsBtn = document.getElementById('settingsBtn');
+const addTaskBtn = document.getElementById('addTaskBtn');
 // Sections
 const schdSection = document.querySelector('.schd-section');
 const tasksSection = document.querySelector('.tasks-section');
@@ -27,9 +28,12 @@ let courseMap = {};
 function loadCourses() {
     const startDate = $('input[name="startDate"]:checked').val();
     if (!startDate) {
+        alert("Attention: Start date is required.\n\nPlease select a start date Settings section.");
         console.error("Start date is required.");
         return;
     }
+
+    console.log("\n\nscript2.js / loadCourses() \n > startDate value:", startDate);
 
     $.ajax({
         url: 'courses_Handler.php', // Adjust the URL to your endpoint
@@ -41,6 +45,8 @@ function loadCourses() {
                 response.courses.forEach(function (cls) {
                     courseMap[cls.c_id] = cls.courseName;
                 });
+                // Make courseMap globally available
+                window.courseMap = courseMap;
             } else {
                 console.error("Failed to load courses:", response.message);
             }
@@ -64,42 +70,148 @@ if (settingsSection) settingsSection.style.display = 'none';
 // New function: scroll the matrix so that it shows one week before today.
 // This function calculates the difference in days between (today - 7 days) and the grid's start date,
 // then scrolls the matrix horizontally to that column.
+// ----- Unify scrolling: make scrollMatrixToWeekBeforeToday global -----
 function scrollMatrixToWeekBeforeToday() {
     const schdMatrix = document.querySelector(".schd-matrix");
+    const schdHeader = document.querySelector(".schd-header");
     if (!schdMatrix || !window.startDateForMatrix) return;
-    const cellWidth = 40; // Adjust this value to match your cell width
-    const today = new Date();
-    // Calculate the target date (one week before today)
-    const targetDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-    // Calculate the difference in days between targetDate and the start date of the grid
-    const diffDays = Math.floor((targetDate - window.startDateForMatrix) / (1000 * 60 * 60 * 24));
-    const targetScrollLeft = diffDays * cellWidth;
-    console.log("Scrolling matrix to left position:", targetScrollLeft);
-    if (schdMatrix) schdMatrix.scrollTo({ left: targetScrollLeft, behavior: "smooth" });
-}
 
+    const cellWidth = 40; // Width of each cell in pixels
+
+    // Get current date and set to midnight in local time
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Calculate target date (7 days before today) and set to midnight
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() - 7);
+    targetDate.setHours(0, 0, 0, 0);
+
+    // Get start date and ensure it's set to midnight in local time
+    const startDate = new Date(window.startDateForMatrix);
+    startDate.setHours(0, 0, 0, 0);
+
+    // Calculate days between dates
+    const diffTime = targetDate.getTime() - startDate.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+    // Calculate target scroll position
+    const targetScrollLeft = diffDays * cellWidth;
+
+    // Log for debugging
+    console.log("\n\nscript2.js/\nscrollMatrixToWeekBeforeToday:");
+    console.log(` > Start date:`, startDate.toLocaleString());
+    console.log(` > Today:`, today.toLocaleString());
+    console.log(` > Target date (7 days before today):`, targetDate.toLocaleString());
+    console.log(` > Days difference:`, diffDays);
+    console.log(` > Target scroll position:`, targetScrollLeft);
+    console.log(` > Matrix state before scroll:`, schdMatrix.scrollLeft);
+
+    // Force scroll both matrix and header
+    if (schdMatrix) {
+        schdMatrix.scrollLeft = targetScrollLeft;
+    }
+    if (schdHeader) {
+        schdHeader.scrollLeft = targetScrollLeft;
+    }
+
+    // Double-check final positions
+    console.log(` > Matrix final scroll position:`, schdMatrix.scrollLeft);
+    console.log(` > Header final scroll position:`, schdHeader.scrollLeft);
+
+    // Force a refresh of the current week highlighting
+    if (window.updateCurrentWeekHighlight) {
+        setTimeout(window.updateCurrentWeekHighlight, 100);
+    }
+}
+window.scrollMatrixToWeekBeforeToday = scrollMatrixToWeekBeforeToday;
+// ----- x end of Unify scrolling x -----
+
+// ----- New: Function to update schedule matrix task highlighting -----
+function updateScheduleMatrixTasks() {
+    return new Promise((resolve, reject) => {
+        // If we have filtered tasks, use those directly
+        if (window.filteredTasks) {
+            console.log("Using filtered tasks for highlighting:", window.filteredTasks);
+            if (typeof highlightTaskRows === 'function') {
+                // Ensure task type is set correctly
+                const processedTasks = window.filteredTasks.map(task => ({
+                    ...task,
+                    task_type: task.type || task.task_type, // Ensure task_type is set
+                    type: task.type || task.task_type // Ensure type is set
+                }));
+                console.log("Processed tasks:", processedTasks);
+                highlightTaskRows(processedTasks);
+                console.log("Filtered task highlighting completed.");
+                resolve();
+            } else {
+                console.error("highlightTaskRows function is not defined.");
+                reject("highlightTaskRows function is not defined.");
+            }
+            return;
+        }
+
+        // Otherwise, fetch all tasks as normal
+        $.ajax({
+            url: 'tasksHandler.php',
+            type: 'POST',
+            dataType: 'json',
+            data: { action: 'list', task_type: 'all' },
+            success: function (response) {
+                if (response.status === 'success') {
+                    console.log("Fetched tasks:", response.tasks);
+                    if (typeof highlightTaskRows === 'function') {
+                        // Process tasks to ensure type fields are set
+                        const processedTasks = response.tasks.map(task => ({
+                            ...task,
+                            task_type: task.type || task.task_type, // Ensure task_type is set
+                            type: task.type || task.task_type // Ensure type is set
+                        }));
+                        console.log("Processed tasks:", processedTasks);
+                        highlightTaskRows(processedTasks);
+                        console.log("Task highlighting completed.");
+                        resolve();
+                    } else {
+                        console.error("highlightTaskRows function is not defined.");
+                        reject("highlightTaskRows function is not defined.");
+                    }
+                } else {
+                    console.error("Failed to fetch tasks for schedule matrix:", response.message);
+                    reject(response.message);
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error("Error fetching tasks for schedule matrix:", error);
+                reject(error);
+            }
+        });
+    });
+}
+window.updateScheduleMatrixTasks = updateScheduleMatrixTasks;
+
+// TODO: improve sched-matrix's horizontal scrolling when the schedule section is visible/hidden. then use schdSection's design with other sections.
 // ============================================================== 
 //                          schdSection 
 // ============================================================== 
+// Handle the schedule section.
+// This section is responsible for showing the schedule section and hiding other sections.
+// It also handles the navigation buttons for the schedule section.
 if (schdBtn) {
     schdBtn.addEventListener('click', function () {
-        // Toggle the state.
+        // Toggle the state of the schedule section.
         isScheduleSectionVisible = !isScheduleSectionVisible;
 
+        // When the schedule section should be visible:
         if (isScheduleSectionVisible) {
-            // When the schedule section should be visible:
-            // Show midSection and schedule section (with a slide-in effect).
-            if (midSection) midSection.style.display = 'block';
-            if (midSection) midSection.style.marginLeft = '0';
-            if (schdSection) schdSection.style.display = 'block';
-            if (schdSection) schdSection.style.marginLeft = '0';
+            slideIn(midSection);
+            slideIn(schdSection);
 
-            // Hide other content sections.
-            if (tasksSection) tasksSection.style.display = 'none';
-            if (coursesSection) coursesSection.style.display = 'none';
-            if (settingsSection) settingsSection.style.display = 'none';
+            // Hide other sections
+            tasksSection.style.display = 'none';
+            coursesSection.style.display = 'none';
+            settingsSection.style.display = 'none';
 
-            // Hide other navigation buttons.
+            // Hide navigation buttons except for the tasks button.
             if (taskBtn) taskBtn.style.display = 'none';
             if (coursesBtn) coursesBtn.style.display = 'none';
             if (settingsBtn) settingsBtn.style.display = 'none';
@@ -107,21 +219,17 @@ if (schdBtn) {
             // Optionally, hide the left section.
             if (leftSection) leftSection.style.display = 'none';
         } else {
-            // When toggling off: slide out the schedule section.
-            if (midSection) midSection.style.marginLeft = '-100%';
-            if (schdSection) schdSection.style.marginLeft = '-100%';
-            // After a short delay (to allow the slide-out animation to complete):
-            setTimeout(function () {
-                if (midSection) midSection.style.display = 'none';
-                if (schdSection) schdSection.style.display = 'none';
-                if (leftSection) leftSection.style.display = 'block';
-                // Restore other navigation buttons.
-                if (taskBtn) taskBtn.style.display = 'block';
-                if (coursesBtn) coursesBtn.style.display = 'block';
-                if (settingsBtn) settingsBtn.style.display = 'block';
-                // Additionally, scroll the matrix so that it shows one week before today.
-                scrollMatrixToWeekBeforeToday();
-            }, 300); // Delay (in milliseconds) should match your sliding animation duration.
+            // When the schedule section should not be visible:
+            slideOut(midSection);
+            slideOut(schdSection);
+
+            // Show the left section and restore navigation buttons.
+            setTimeout(() => {
+                leftSection.style.display = 'block';
+                taskBtn.style.display = 'block';
+                coursesBtn.style.display = 'block';
+                settingsBtn.style.display = 'block';
+            }, 300);
         }
     });
 }
@@ -177,6 +285,7 @@ $(document).ready(function () {
     const addTaskBtn = $('#addTaskBtn');
     const tasksForm = $('#tasksForm');
     const tasksList = $('.tasksList');
+    const submitTaskBtn = tasksForm.find('button[type="submit"]');
 
     // Initially hide the tasks form.
     if (tasksForm) tasksForm.hide();
@@ -187,11 +296,9 @@ $(document).ready(function () {
             url: 'tasksHandler.php',
             type: 'POST',
             dataType: 'json',
-            // Request all tasks by sending task_type: 'all'
             data: { action: 'list', task_type: 'all' },
             success: function (response) {
                 if (response.status === 'success') {
-                    // Group tasks by course_id.
                     let groups = {};
                     response.tasks.forEach(function (task) {
                         let cid = task.course_id;
@@ -201,7 +308,6 @@ $(document).ready(function () {
                         groups[cid].push(task);
                     });
 
-                    // Build HTML output for each course in courseMap.
                     let html = '';
                     for (let cid in courseMap) {
                         let cname = courseMap[cid] || ('Course ' + cid);
@@ -235,19 +341,59 @@ $(document).ready(function () {
     // Load tasks when the page loads.
     loadTasks();
 
-    // Also reload tasks when the Tasks button is clicked.
-    if ($('#taskBtn')) $('#taskBtn').on('click', function () {
-        loadTasks();
-    });
-
     // Show tasks form when "+ Add Task" button is clicked.
     if (addTaskBtn) addTaskBtn.on('click', function () {
         if (tasksForm) tasksForm.slideDown();
         if (addTaskBtn) addTaskBtn.hide();
     });
 
+    // Handle edit button click.
+    $(document).on('click', '.editSaveBtn', function () {
+        const taskId = $(this).data('id');
+        const taskType = $(this).data('type');
+
+        // Fetch task details via AJAX
+        $.ajax({
+            url: 'tasksHandler.php',
+            type: 'POST',
+            dataType: 'json',
+            data: { action: 'getTask', id: taskId, task_type: taskType },
+            success: function (response) {
+                if (response.status === 'success') {
+                    const task = response.task;
+                    // Populate the form with task details
+                    $('#course_id').val(task.course_id);
+                    $('#task_type').val(task.task_type);
+                    $('#title').val(task.title);
+                    $('#from_date').val(task.from_date);
+                    $('#to_date').val(task.to_date);
+                    $('#status').val(task.status);
+                    $('#suggested_date').val(task.suggested_date);
+                    $('#actual_start_date').val(task.actual_start_date);
+                    $('#actual_end_date').val(task.actual_end_date);
+                    $('#percent').val(task.percent);
+                    $('#priority').val(task.priority);
+                    $('#details').val(task.details);
+
+                    // Change submit button text to "Save"
+                    submitTaskBtn.text('Save');
+
+                    // Show the form and scroll to it
+                    tasksForm.slideDown();
+                    $('html, body').animate({ scrollTop: tasksForm.offset().top }, 'slow');
+                } else {
+                    alert("Failed to fetch task details: " + response.message);
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error("Error fetching task details:", error);
+            }
+        });
+    });
+
     // Handle tasks form submission via AJAX.
-    if (tasksForm) tasksForm.on('submit', function (e) {
+    tasksForm.on('submit', function (e) {
+        console.log("\n\nscript2.js / tasksForm.on {saving a new task} started/n");
         e.preventDefault();
         const courseId = $('#course_id').val();
         const taskType = $('#task_type').val();
@@ -259,27 +405,27 @@ $(document).ready(function () {
         const percent = $('#percent').val();
         const priority = $('#priority').val();
         const details = $('#details').val();
-        const startDate = $('#start_date').val();
+        const startDate = $('input[name="startDate"]:checked').val(); // get the value of the checked radio button
         const actualStartDate = $('#actual_start_date').val();
         const actualEndDate = $('#actual_end_date').val();
 
-        let errors = [];
-        if (!courseId) errors.push("Please select a course.");
-        if (!taskType) errors.push("Please select a task type.");
-        if (!title) errors.push("Please enter a title.");
-        if (!fromDate) errors.push("Please select a from date.");
-        if (!toDate) errors.push("Please select a to date.");
-        if (!status) errors.push("Please select a status.");
-        if (!suggestedDate) errors.push("Please select a suggested date.");
-        if (!percent) errors.push("Please enter percent.");
-        if (!priority) errors.push("Please select a priority.");
-        if (!actualStartDate) errors.push("Please select an actual start date.");
-        if (!actualEndDate) errors.push("Please select an actual end date.");
-
-        if (errors.length > 0) {
-            alert(errors.join("\n"));
-            return;
-        }
+        // log the data to be sent to the server.
+        console.log("{saving a new task} \n > Sending data:", {
+            action: 'add',
+            course_id: courseId,
+            task_type: taskType,
+            title: title,
+            from_date: fromDate,
+            to_date: toDate,
+            status: status,
+            suggested_date: suggestedDate,
+            actual_start_date: actualStartDate,
+            actual_end_date: actualEndDate,
+            percent: percent,
+            priority: priority,
+            details: details,
+            start_date: startDate
+        });
 
         $.ajax({
             url: 'tasksHandler.php',
@@ -303,26 +449,36 @@ $(document).ready(function () {
             },
             success: function (response) {
                 if (response.status === 'success') {
-                    alert("Task added successfully.");
-                    if (tasksForm) tasksForm[0].reset();
-                    if (tasksForm) tasksForm.slideUp();
-                    if (addTaskBtn) addTaskBtn.show();
-                    loadTasks();  // Reload tasks list after addition.
+                    alert("Task saved successfully.");
+                    submitTaskBtn.text('Submit Task');
+                    tasksForm[0].reset();
+                    tasksForm.slideUp();
+                    loadTasks(); // Reload tasks list after saving.
+                    if (addTaskBtn) addTaskBtn.show(); // Show the Add Task button
+                    updateScheduleMatrixTasks().then(() => {
+                        console.log("Tasks updated, now scrolling.");
+                        scrollMatrixToWeekBeforeToday();
+                    }).catch(error => {
+                        console.error("Error in updating schedule matrix tasks:", error);
+                    });
                 } else {
-                    alert("Failed to add task: " + response.message);
+                    alert("Failed to save task: " + response.message);
                 }
             },
             error: function (xhr, status, error) {
-                console.error("Error adding task:", error);
+                console.error("Error saving task:", error);
             }
         });
     });
 
     // Handle Cancel button click.
-    if ($('#cancelTaskBtn')) $('#cancelTaskBtn').on('click', function () {
-        if (tasksForm) tasksForm[0].reset();
-        if (tasksForm) tasksForm.slideUp();
-        if (addTaskBtn) addTaskBtn.show();
+    $('#cancelTaskBtn').on('click', function () {
+        if (confirm("Are you sure you want to cancel editing?")) {
+            tasksForm[0].reset();
+            tasksForm.slideUp();
+            if (addTaskBtn) addTaskBtn.show();
+            alert("Task editing canceled.");
+        }
     });
 
     // --- Handling Task Deletion ---
@@ -343,7 +499,13 @@ $(document).ready(function () {
             success: function (response) {
                 if (response.status === 'success') {
                     alert("Task deleted successfully.");
-                    loadTasks(); // Reload tasks list after deletion.
+                    loadTasks(); // Reload tasks list after saving.
+                    updateScheduleMatrixTasks().then(() => {
+                        console.log("Tasks updated, now scrolling.");
+                        scrollMatrixToWeekBeforeToday();
+                    }).catch(error => {
+                        console.error("Error in updating schedule matrix tasks:", error);
+                    });
                 } else {
                     alert("Failed to delete task: " + response.message);
                 }
@@ -553,3 +715,94 @@ $(document).ready(function () {
     });
 });
 // ------------- x end of coursesSection Handlers x -------------- //
+
+// ============================================================== 
+//                          slideIn 
+// ============================================================== 
+// This function slides in an element from the left.
+function slideIn(element) {
+    element.style.display = 'block';
+    element.style.marginLeft = '-100%';
+    let start = null;
+
+    function animate(time) {
+        if (!start) start = time;
+        const progress = time - start;
+        const position = Math.min(progress / 300, 1) * 100; // 300ms duration
+        element.style.marginLeft = `${position - 100}%`;
+
+        if (position < 100) {
+            requestAnimationFrame(animate);
+        }
+    }
+
+    requestAnimationFrame(animate);
+}
+
+// ============================================================== 
+//                          slideOut 
+// ==============================================================
+// This function slides out an element to the left.
+function slideOut(element) {
+    let start = null;
+
+    function animate(time) {
+        if (!start) start = time;
+        const progress = time - start;
+        const position = Math.min(progress / 300, 1) * 100; // 300ms duration
+        element.style.marginLeft = `-${position}%`;
+
+        if (position < 100) {
+            requestAnimationFrame(animate);
+        } else {
+            element.style.display = 'none';
+        }
+    }
+
+    requestAnimationFrame(animate);
+}
+
+function updateSubmittedTasksVisibility(show) {
+    // Update localStorage
+    localStorage.setItem('showSubmittedTasks', show);
+
+    // First, reset all row visibility for submitted tasks
+    const matrixRows = document.querySelectorAll('.matrix-row');
+    matrixRows.forEach(row => {
+        if (row.getAttribute('data-task-status') === 'submitted') {
+            row.style.display = show ? '' : 'none';
+            // Reset cell backgrounds in the row
+            Array.from(row.children).forEach(cell => {
+                cell.style.backgroundColor = show ? cell.style.backgroundColor : 'transparent';
+            });
+        }
+    });
+
+    // Then refresh the matrix to ensure proper highlighting
+    updateScheduleMatrixTasks().then(() => {
+        console.log("Matrix updated with new visibility settings");
+        scrollMatrixToWeekBeforeToday();
+    }).catch(error => {
+        console.error("Error updating matrix with new visibility settings:", error);
+    });
+}
+
+// Handle submitted tasks visibility toggle
+document.addEventListener('DOMContentLoaded', function () {
+    const hideSubmittedTasksToggle = document.getElementById('hideSubmittedTasks');
+
+    if (hideSubmittedTasksToggle) {
+        // Load saved preference from localStorage
+        const showSubmittedTasks = localStorage.getItem('showSubmittedTasks') !== 'false';
+        hideSubmittedTasksToggle.checked = showSubmittedTasks;
+
+        // Apply initial state
+        updateSubmittedTasksVisibility(showSubmittedTasks);
+
+        // Handle toggle changes
+        hideSubmittedTasksToggle.addEventListener('change', function () {
+            const showTasks = this.checked;
+            updateSubmittedTasksVisibility(showTasks);
+        });
+    }
+});

@@ -27,26 +27,48 @@ document.addEventListener('DOMContentLoaded', function () {
 
 document.addEventListener('DOMContentLoaded', function () {
     const slider = document.getElementById('slider');
+    if (!slider) {
+        console.log('Slider element not found, skipping event listeners');
+        return;
+    }
+
     let activeTaskId = null;
+    const taskTable = document.getElementById('taskTable');
 
-    document.getElementById('taskTable').addEventListener('click', function (event) {
-        const cell = event.target.closest('.task-cell');
-        if (!cell) return;
+    if (taskTable) {
+        taskTable.addEventListener('click', function (event) {
+            const cell = event.target.closest('.task-cell');
+            if (!cell) return;
 
-        const taskId = cell.getAttribute('data-task-id');
+            const taskId = cell.getAttribute('data-task-id');
 
-        if (activeTaskId === taskId) {
-            // Second click on the same task, hide the slider
-            slider.classList.remove('visible');
-            slider.classList.add('hidden');
-            activeTaskId = null;
-        } else {
-            // First click on a task, show the slider
-            slider.classList.remove('hidden');
-            slider.classList.add('visible');
-            activeTaskId = taskId;
-        }
-    });
+            if (activeTaskId === taskId) {
+                // Second click on the same task, hide the slider
+                slider.classList.remove('visible');
+                slider.classList.add('hidden');
+                activeTaskId = null;
+            } else {
+                // First click on a task, show the slider
+                slider.classList.remove('hidden');
+                slider.classList.add('visible');
+                activeTaskId = taskId;
+            }
+        });
+
+        // Also add the task details click handler here
+        taskTable.addEventListener('click', function (event) {
+            const cell = event.target.closest('.task-cell');
+            if (!cell) return;
+
+            const taskId = cell.getAttribute('data-task-id');
+            if (taskId) {
+                // Fetch task details via AJAX
+                fetchTaskDetails(taskId);
+            }
+        });
+    } else {
+        console.log('Task table element not found, skipping event listeners');
+    }
 
     document.addEventListener('click', function (event) {
         if (!event.target.closest('.task-cell')) {
@@ -56,21 +78,6 @@ document.addEventListener('DOMContentLoaded', function () {
             activeTaskId = null;
         }
     });
-});
-
-document.addEventListener('DOMContentLoaded', function () {
-    const taskTable = document.getElementById('taskTable');
-    if (taskTable) {
-        taskTable.addEventListener('click', function (event) {
-            const cell = event.target.closest('.task-cell');
-            if (!cell) return;
-
-            const taskId = cell.getAttribute('data-task-id');
-
-            // Fetch task details via AJAX
-            fetchTaskDetails(taskId);
-        });
-    }
 
     const closePanelBtn = document.getElementById('closePanelBtn');
     if (closePanelBtn) {

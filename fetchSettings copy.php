@@ -164,40 +164,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
     try {
         // Begin transaction for atomicity.
-        debug_to_db("Starting transaction for adding date.", $debug_log);
         $conn->beginTransaction();
 
-        // Check if the date already exists for the same user
-        debug_to_db("Checking if date already exists for the user.", $debug_log);
+        // Check if the date already exists
         $stmt = $conn->prepare("SELECT COUNT(*) FROM Settings WHERE user_id = ? AND date = ?");
         $stmt->execute([$user_id, $date]);
         $count = $stmt->fetchColumn();
-        debug_to_db("Fetched date count for user: " . $count, $debug_log);
+        debug_to_db("Fetched date count: " . $count, $debug_log);
 
         if ($count > 0) {
-            echo json_encode(["success" => false, "error" => "Date already exists for this user."]);
-            debug_to_db("Date already exists for this user, rolling back transaction.", $debug_log);
+            echo json_encode(["success" => false, "error" => "Date already exists."]);
             $conn->rollBack();
             log_to_db($user_id, $debug_log, $conn);
             exit;
         }
 
         // Reset previous start date
-        debug_to_db("Resetting previous start date.", $debug_log);
         $stmtReset = $conn->prepare("UPDATE Settings SET is_start_date = 0 WHERE user_id = ?");
         $stmtReset->execute([$user_id]);
         $resetRows = $stmtReset->rowCount();
         debug_to_db("Reset start date rows affected: " . $resetRows, $debug_log);
 
         // Insert the new date
-        debug_to_db("Inserting new date.", $debug_log);
         $stmt = $conn->prepare("INSERT INTO Settings (user_id, date, is_start_date) VALUES (?, ?, 1)");
         $inserted = $stmt->execute([$user_id, $date]);
         $insertedRows = $stmt->rowCount();
         debug_to_db("Inserted date rows affected: " . $insertedRows, $debug_log);
 
         // Commit the transaction.
-        debug_to_db("Committing transaction.", $debug_log);
         $conn->commit();
 
         // Check if any row was inserted.
@@ -210,9 +204,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
     } catch (PDOException $e) {
         // Roll back in case of error.
-        debug_to_db("Error occurred: " . $e->getMessage(), $debug_log);
         $conn->rollBack();
-        debug_to_db("Transaction rolled back due to error.", $debug_log);
+        debug_to_db("Error adding date: " . $e->getMessage(), $debug_log);
         // Avoid exposing sensitive information to the client.
         echo json_encode(['success' => false, 'error' => "An error occurred while adding date."]);
     }
