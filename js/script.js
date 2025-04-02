@@ -8,6 +8,64 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
+// Handle signup form submission
+document.addEventListener('DOMContentLoaded', function () {
+    const signupSubmit = document.getElementById('signupSubmit');
+    const signupForm = document.querySelector('.form-container');
+
+    if (signupSubmit && signupForm) {
+        signupSubmit.addEventListener('click', function (e) {
+            e.preventDefault();
+
+            // Get form data
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            // Basic validation
+            if (!username || !email || !password || !confirmPassword) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                alert('Passwords do not match');
+                return;
+            }
+
+            // Prepare data for submission
+            const data = {
+                username: username,
+                email: email,
+                password: password
+            };
+
+            // Send request
+            fetch('signup.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.message === 'User with this username or email already exists.') {
+                        alert(result.message);
+                    } else {
+                        // Successful signup will redirect to home.php
+                        window.location.href = 'home.php';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred during signup. Please try again.');
+                });
+        });
+    }
+});
+
 // Redirect user to index page
 document.addEventListener('DOMContentLoaded', function () {
     var mainButton = document.getElementById('mainButton');

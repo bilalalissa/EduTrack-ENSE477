@@ -284,6 +284,16 @@
             "status": "Failed",
             "timeElapsed": "0.081 seconds",
             "timestamp": "2025-03-26T04:51:40.187Z"
+        },
+        {
+            "taskId": 1,
+            "name": "Test Signup",
+            "type": "Functional",
+            "inputs": "username, email, password",
+            "outputs": "User created successfully",
+            "status": "Failed",
+            "timeElapsed": "0.112 seconds",
+            "timestamp": "2025-04-02T19:18:37.062Z"
         }
     ]
 }

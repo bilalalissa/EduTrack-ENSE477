@@ -22,13 +22,13 @@ let isTasksSectionVisible = false;
 let isCoursesSectionVisible = false;
 let isSettingsSectionVisible = false;
 // Define courseMap
-let courseMap = {};
+let courseMap = {}
 
 // Function to load courses and populate coursMap
 function loadCourses() {
     const startDate = $('input[name="startDate"]:checked').val();
     if (!startDate) {
-        alert("Attention: Start date is required.\n\nPlease select a start date Settings section.");
+        alert("ATTENTION: Start date is required.\n\nPlease select a start date in the Settings section.");
         console.error("Start date is required.");
         return;
     }
