@@ -21,7 +21,7 @@ session_start();
 ////////////////////////
 // Debugging System
 ////////////////////////
-$user_id = $_SESSION['loggedinID']; // Get the logged-in user's ID
+$user_id = $_SESSION['signupUserId']; // Get the logged-in user's ID
 $username = $_SESSION['loggedinUsername']; // Get the logged-in user's username
 // Initialize logging system
 function debug_to_db($message, &$debug_log)
@@ -44,7 +44,7 @@ function log_to_db($user_id, $log_data, $conn)
         if ($user_id === null) {
             $user_id = 0; // Default to system user if no user is logged in
         } else {
-            $user_id = $_SESSION['loggedinID']; // Get the logged-in user's ID
+            $user_id = $_SESSION['signupUserId']; // Get the logged-in user's ID
             $username = $_SESSION['loggedinUsername']; // Get the logged-in user's username
         }
         $stmt = $conn->prepare("INSERT INTO Logs (user_id, log_data) VALUES (:user_id, :log_data)");
@@ -240,12 +240,12 @@ function test_input($data)
                 </span>] [EduTrack] - Home</h1>
             <div class="header-buttons">
                 <button id="exitButton" class="action-button left-button">Exit</button>
-                <a href="Transcribe/index.html">
+                <!-- <a href="Transcribe/index.html">
                     <button type="button">Transcribe</button>
                 </a>
                 <a href="addReminder.html">
                     <button type="button">Add Reminder</button>
-                </a>
+                </a> -->
                 <a href="tests/index.html">
                     <button type="button">Test Tasks</button>
                 </a>
@@ -550,10 +550,10 @@ function test_input($data)
                     <form id="tasksForm" method="POST" action="tasksHandler.php">
                         <!-- Hidden field for start_date (populated from Settings) -->
                         <input type="hidden" name="start_date" id="start_date" value="<?php
-                                                                                        // log the beginning of handling tasksform
-                                                                                        echo ' > home.php: Handling tasksform started';
+                                                                                        // Log the beginning of handling tasksform
+                                                                                        error_log(' > home.php: Handling tasksform started');
                                                                                         $stmt = $conn->prepare("SELECT date FROM Settings WHERE user_id = ? AND is_start_date = 1 LIMIT 1");
-                                                                                        $stmt->execute([$_SESSION['loggedinID']]);
+                                                                                        $stmt->execute([$_SESSION['signupUserId']]);
                                                                                         if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                                                                                             echo htmlspecialchars($row['date']);
                                                                                         }
@@ -568,7 +568,7 @@ function test_input($data)
                             <option value="">--Select Course--</option>
                             <?php
                             $stmt = $conn->prepare("SELECT c_id, courseName FROM Courses WHERE user_id = ?");
-                            $stmt->execute([$_SESSION['loggedinID']]);
+                            $stmt->execute([$_SESSION['signupUserId']]);
                             while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                                 echo '<option value="' . htmlspecialchars($row['c_id']) . '">' . htmlspecialchars($row['courseName']) . '</option>';
                             }
@@ -660,7 +660,7 @@ function test_input($data)
                 <script>
                     var courseMapping = <?php
                                         $stmt = $conn->prepare("SELECT c_id, courseName FROM Courses WHERE user_id = ?");
-                                        $stmt->execute([$_SESSION['loggedinID']]);
+                                        $stmt->execute([$_SESSION['signupUserId']]);
                                         echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
                                         ?>;
                     var courseMap = {};
@@ -675,7 +675,8 @@ function test_input($data)
                 <!-- Courses Section -->
                 <div class="courses-section">
                     <h3>Courses</h3>
-                    <form id="coursesForm">
+                    <button id="addCourseBtn">+ Add Course</button>
+                    <form id="coursesForm" style="display: none;">
                         <label for="courseName">Course Name: </label>
                         <input type="text" id="courseName" name="courseName" placeholder="Enter course name" required>
 
@@ -683,6 +684,7 @@ function test_input($data)
                         <textarea id="courseNotes" name="courseNotes" placeholder="Enter course notes"></textarea>
 
                         <button type="submit">Submit</button>
+                        <button type="button" id="cancelCourseBtn">Cancel</button>
                     </form>
                     <ul class="coursesList">
                         <!-- The list of courses will be dynamically loaded here -->
@@ -703,7 +705,7 @@ function test_input($data)
                         <?php
                         // Ensure only the logged-in user's dates are fetched
                         $stmt = $conn->prepare("SELECT date, is_start_date FROM Settings WHERE user_id = ? ORDER BY date ASC");
-                        $stmt->execute([$_SESSION['loggedinID']]);
+                        $stmt->execute([$_SESSION['signupUserId']]);
                         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                             $checked = $row['is_start_date'] ? 'checked' : '';
                             echo "<div class='dateItem'>
@@ -737,7 +739,7 @@ function test_input($data)
 
                                 <label>
                                     <input type="checkbox" id="holidayCourses" name="holidayCourses">
-                                    Applies to Courses
+                                    Classes? (Unchecked = No Classes)
                                 </label>
 
                                 <button type="submit">Save Holiday</button>
@@ -752,7 +754,7 @@ function test_input($data)
                         <h4>Task Visibility</h4>
                         <div class="toggle-container">
                             <label class="toggle-switch">
-                                <input type="checkbox" id="hideSubmittedTasks" checked>
+                                <input type="checkbox" id="hideSubmittedTasks">
                                 <span class="toggle-slider"></span>
                             </label>
                             <span class="toggle-label">Show Submitted Tasks</span>
