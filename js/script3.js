@@ -408,7 +408,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             data.holidays.forEach(holiday => {
               const li = document.createElement("li");
               li.innerHTML = `
-                <span><strong>${holiday.title}</strong> (${holiday.from_date} - ${holiday.to_date}) - Courses: ${holiday.courses ? "Yes" : "No"}</span>
+                <span><strong>${holiday.title}</strong> (${holiday.from_date} - ${holiday.to_date}) - Classes: ${holiday.courses ? "Yes" : "No"}</span>
                 <button class="deleteHolidayBtn" data-id="${holiday.h_id}">Delete</button>
               `;
               li.querySelector(".deleteHolidayBtn").addEventListener("click", function () {
@@ -459,10 +459,23 @@ document.addEventListener("DOMContentLoaded", async function () {
           holidayTo.value = "";
           holidayCourses.checked = false;
           holidayFormContainer.style.display = "none";
-          fetchHolidays().then(holidaysData => {
+
+          // First refresh the matrix to ensure clean state
+          refreshMatrix().then(() => {
+            // Then fetch and highlight holidays
+            return fetchHolidays();
+          }).then(holidaysData => {
             if (holidaysData.success && holidaysData.holidays) {
-              highlightHolidayRows(holidaysData.holidays);
+              if (window.highlightHolidayRows) {
+                window.highlightHolidayRows(holidaysData.holidays);
+              } else {
+                highlightHolidayRows(holidaysData.holidays);
+              }
+              // Finally fetch and highlight tasks to maintain their visibility
+              return fetchTasksAndHighlight();
             }
+          }).catch(error => {
+            console.error("Error refreshing matrix after adding holiday:", error);
           });
         } else {
           alert("Error adding holiday: " + data.error);
@@ -481,10 +494,22 @@ document.addEventListener("DOMContentLoaded", async function () {
       .then(data => {
         if (data.success) {
           alert("Holiday deleted successfully.");
-          fetchHolidays().then(holidaysData => {
+          // First refresh the matrix to ensure clean state
+          refreshMatrix().then(() => {
+            // Then fetch and highlight holidays
+            return fetchHolidays();
+          }).then(holidaysData => {
             if (holidaysData.success && holidaysData.holidays) {
-              highlightHolidayRows(holidaysData.holidays);
+              if (window.highlightHolidayRows) {
+                window.highlightHolidayRows(holidaysData.holidays);
+              } else {
+                highlightHolidayRows(holidaysData.holidays);
+              }
+              // Finally fetch and highlight tasks to maintain their visibility
+              return fetchTasksAndHighlight();
             }
+          }).catch(error => {
+            console.error("Error refreshing matrix after deleting holiday:", error);
           });
         } else {
           alert("Error deleting holiday: " + data.error);

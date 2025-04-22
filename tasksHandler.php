@@ -6,12 +6,12 @@ require_once("db.php"); // Ensure $conn is your PDO connection
 header('Content-Type: application/json');
 
 // Verify user is logged in.
-if (!isset($_SESSION['loggedinID'])) {
+if (!isset($_SESSION['signupUserId'])) {
     echo json_encode(["status" => "error", "message" => "User not logged in."]);
     exit;
 }
 
-$user_id = $_SESSION['loggedinID'];
+$user_id = $_SESSION['signupUserId'];
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
 // Allow both GET and POST methods depending on the action
@@ -47,6 +47,78 @@ if ($action === 'getStartDate') {
     error_log("Invalid request method.");
     echo json_encode(["status" => "error", "message" => "Invalid request method."]);
     exit;
+}
+
+// Add validation functions at the top of the file
+function validateTaskDates($fromDate, $toDate, $suggestedDate, $actualStartDate, $actualEndDate, $startDate)
+{
+    $errors = [];
+
+    // Log input dates for debugging
+    error_log("Validating dates: " . json_encode([
+        'fromDate' => $fromDate,
+        'toDate' => $toDate,
+        'suggestedDate' => $suggestedDate,
+        'actualStartDate' => $actualStartDate,
+        'actualEndDate' => $actualEndDate,
+        'startDate' => $startDate
+    ]));
+
+    // Convert dates to timestamps for comparison
+    $from = strtotime($fromDate);
+    $to = strtotime($toDate);
+    $suggested = strtotime($suggestedDate);
+    $actualStart = strtotime($actualStartDate);
+    $actualEnd = strtotime($actualEndDate);
+    $start = strtotime($startDate);
+
+    // Calculate matrix end date as 120 days from start date
+    $matrixEnd = strtotime($startDate . ' + 120 days');
+    error_log("Matrix end date calculated: " . date('Y-m-d', $matrixEnd));
+
+    // Log converted timestamps for debugging
+    error_log("Converted timestamps: " . json_encode([
+        'from' => date('Y-m-d', $from),
+        'to' => date('Y-m-d', $to),
+        'suggested' => date('Y-m-d', $suggested),
+        'actualStart' => date('Y-m-d', $actualStart),
+        'actualEnd' => date('Y-m-d', $actualEnd),
+        'start' => date('Y-m-d', $start),
+        'matrixEnd' => date('Y-m-d', $matrixEnd)
+    ]));
+
+    // Validate from and to dates against start date
+    if ($from < $start) {
+        $errors[] = "From date cannot be earlier than the start date";
+    }
+    if ($to < $from) {
+        $errors[] = "To date cannot be earlier than from date";
+    }
+    if ($to > $matrixEnd) {
+        error_log("To date validation failed: " . json_encode([
+            'to' => date('Y-m-d', $to),
+            'matrixEnd' => date('Y-m-d', $matrixEnd)
+        ]));
+        $errors[] = "To date cannot be later than the last date in the schedule matrix (" . date('Y-m-d', $matrixEnd) . ")";
+    }
+
+    // Validate suggested date is within the task period
+    if ($suggested < $from || $suggested > $to) {
+        $errors[] = "Suggested date must be within the task period (between from and to dates)";
+    }
+
+    // Validate actual dates are within the task period
+    if ($actualStart < $from || $actualStart > $to) {
+        $errors[] = "Actual start date must be within the task period";
+    }
+    if ($actualEnd < $from || $actualEnd > $to) {
+        $errors[] = "Actual end date must be within the task period";
+    }
+    if ($actualEnd < $actualStart) {
+        $errors[] = "Actual end date cannot be earlier than actual start date";
+    }
+
+    return $errors;
 }
 
 // -------------------- Action: List Tasks --------------------
@@ -122,136 +194,190 @@ if ($action === 'list') {
 }
 // -------------------- Action: Add Task --------------------
 elseif ($action === 'add') {
-    // Collect and sanitize inputs.
-    $course_id = trim($_POST['course_id'] ?? '');
-    $task_type = trim($_POST['task_type'] ?? '');
-    $title = trim($_POST['title'] ?? '');
-    $from_date = trim($_POST['from_date'] ?? '');
-    $to_date = trim($_POST['to_date'] ?? '');
-    $status = trim($_POST['status'] ?? '');
-    $suggested_date = trim($_POST['suggested_date'] ?? '');
-    $percent = trim($_POST['percent'] ?? '');
-    $priority = trim($_POST['priority'] ?? '');
-    $details = trim($_POST['details'] ?? '');
-    $start_date = trim($_POST['start_date'] ?? '');
-    $actual_start_date = trim($_POST['actual_start_date'] ?? '');
-    $actual_end_date = trim($_POST['actual_end_date'] ?? '');
+    try {
+        // Log the incoming request
+        error_log("Adding new task. POST data: " . print_r($_POST, true));
 
-    // Validate required fields.
-    $errors = [];
-    if (empty($course_id)) {
-        $errors[] = "Course selection is required.";
-    }
-    if (empty($task_type)) {
-        $errors[] = "Task type is required.";
-    }
-    if (empty($title)) {
-        $errors[] = "Title is required.";
-    }
-    if (empty($from_date)) {
-        $errors[] = "From date is required.";
-    }
-    if (empty($to_date)) {
-        $errors[] = "To date is required.";
-    }
-    if (empty($status)) {
-        $errors[] = "Status is required.";
-    }
-    if (empty($suggested_date)) {
-        $errors[] = "Suggested date is required.";
-    }
-    if (empty($percent)) {
-        $errors[] = "Percent is required.";
-    }
-    if (empty($priority)) {
-        $errors[] = "Priority is required.";
-    }
-    if (empty($start_date)) {
-        $errors[] = "Start date is required.";
-    }
-    if (empty($actual_start_date)) {
-        $errors[] = "Actual start date is required.";
-    }
-    if (empty($actual_end_date)) {
-        $errors[] = "Actual end date is required.";
-    }
+        // Collect and sanitize inputs.
+        $course_id = trim($_POST['course_id'] ?? '');
+        $task_type = trim($_POST['task_type'] ?? '');
+        $title = trim($_POST['title'] ?? '');
+        $from_date = trim($_POST['from_date'] ?? '');
+        $to_date = trim($_POST['to_date'] ?? '');
+        $status = trim($_POST['status'] ?? '');
+        $suggested_date = trim($_POST['suggested_date'] ?? '');
+        $percent = trim($_POST['percent'] ?? '');
+        $priority = trim($_POST['priority'] ?? '');
+        $details = trim($_POST['details'] ?? '');
+        $start_date = trim($_POST['start_date'] ?? '');
+        $actual_start_date = trim($_POST['actual_start_date'] ?? '');
+        $actual_end_date = trim($_POST['actual_end_date'] ?? '');
 
-    // Validate allowed values.
-    $allowedTaskTypes = ['Assignment', 'Quiz', 'Project', 'MT', 'Final'];
-    if (!in_array($task_type, $allowedTaskTypes)) {
-        $errors[] = "Invalid task type.";
-    }
-    $allowedStatus = ['on_hold', 'in_process', 'submitted'];
-    if (!in_array($status, $allowedStatus)) {
-        $errors[] = "Invalid status.";
-    }
-    $allowedPriority = ['n', 'm', 'h'];
-    if (!in_array($priority, $allowedPriority)) {
-        $errors[] = "Invalid priority.";
-    }
+        // Log sanitized inputs
+        error_log("Sanitized inputs: " . print_r([
+            'course_id' => $course_id,
+            'task_type' => $task_type,
+            'title' => $title,
+            'from_date' => $from_date,
+            'to_date' => $to_date,
+            'status' => $status,
+            'suggested_date' => $suggested_date,
+            'percent' => $percent,
+            'priority' => $priority,
+            'details' => $details,
+            'start_date' => $start_date,
+            'actual_start_date' => $actual_start_date,
+            'actual_end_date' => $actual_end_date
+        ], true));
 
-    if (!empty($errors)) {
-        echo json_encode(["status" => "error", "message" => implode(" ", $errors)]);
-        exit;
-    }
+        // Validate required fields.
+        $errors = [];
+        if (empty($course_id)) {
+            $errors[] = "Course selection is required.";
+        }
+        if (empty($task_type)) {
+            $errors[] = "Task type is required.";
+        }
+        if (empty($title)) {
+            $errors[] = "Title is required.";
+        }
+        if (empty($from_date)) {
+            $errors[] = "From date is required.";
+        }
+        if (empty($to_date)) {
+            $errors[] = "To date is required.";
+        }
+        if (empty($status)) {
+            $errors[] = "Status is required.";
+        }
+        if (empty($suggested_date)) {
+            $errors[] = "Suggested date is required.";
+        }
+        if (empty($percent)) {
+            $errors[] = "Percent is required.";
+        }
+        if (empty($priority)) {
+            $errors[] = "Priority is required.";
+        }
+        if (empty($start_date)) {
+            $errors[] = "Start date is required.";
+        }
+        if (empty($actual_start_date)) {
+            $errors[] = "Actual start date is required.";
+        }
+        if (empty($actual_end_date)) {
+            $errors[] = "Actual end date is required.";
+        }
 
-    // Map task type to table name.
-    $tableMap = [
-        'Assignment' => 'Assignments',
-        'Quiz' => 'Quizzes',
-        'Project' => 'Projects',
-        'MT' => 'MTs',
-        'Final' => 'Finals'
-    ];
-    $tableName = $tableMap[$task_type];
+        // Validate allowed values.
+        $allowedTaskTypes = ['Assignment', 'Quiz', 'Project', 'MT', 'Final'];
+        if (!in_array($task_type, $allowedTaskTypes)) {
+            $errors[] = "Invalid task type.";
+        }
+        $allowedStatus = ['on_hold', 'in_process', 'submitted'];
+        if (!in_array($status, $allowedStatus)) {
+            $errors[] = "Invalid status.";
+        }
+        $allowedPriority = ['n', 'm', 'h'];
+        if (!in_array($priority, $allowedPriority)) {
+            $errors[] = "Invalid priority.";
+        }
 
-    // Map task type to its primary key column.
-    $idMap = [
-        'Assignment' => 'asmnt_id',
-        'Quiz' => 'qz_id',
-        'Project' => 'proj_id',
-        'MT' => 'mt_id',
-        'Final' => 'final_id'
-    ];
-    $idColumn = $idMap[$task_type];
+        // Add date validation
+        $dateErrors = validateTaskDates($from_date, $to_date, $suggested_date, $actual_start_date, $actual_end_date, $start_date);
+        $errors = array_merge($errors, $dateErrors);
 
-    // Check for duplicate task.
-    $stmt = $conn->prepare("SELECT $idColumn FROM $tableName WHERE user_id = ? AND start_date = ? AND course_id = ? AND title = ?");
-    $stmt->execute([$user_id, $start_date, $course_id, $title]);
-    if ($stmt->fetch()) {
-        echo json_encode(["status" => "error", "message" => "A task with the same title already exists for this course and start date."]);
-        exit;
-    }
+        if (!empty($errors)) {
+            error_log("Validation errors: " . implode(", ", $errors));
+            echo json_encode(["status" => "error", "message" => implode(" ", $errors)]);
+            exit;
+        }
 
-    // Insert the new task.
-    $sql = "INSERT INTO $tableName 
-           (user_id, start_date, course_id, title, from_date, to_date, status, suggested_date, actual_start_date, actual_end_date, percent, priority, details)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-    $stmt = $conn->prepare($sql);
-    $result = $stmt->execute([
-        $user_id,
-        $start_date,
-        $course_id,
-        $title,
-        $from_date,
-        $to_date,
-        $status,
-        $suggested_date,
-        $actual_start_date,
-        $actual_end_date,
-        $percent,
-        $priority,
-        $details
-    ]);
+        // Map task type to table name.
+        $tableMap = [
+            'Assignment' => 'Assignments',
+            'Quiz' => 'Quizzes',
+            'Project' => 'Projects',
+            'MT' => 'MTs',
+            'Final' => 'Finals'
+        ];
+        $tableName = $tableMap[$task_type];
 
-    if ($result) {
-        echo json_encode([
-            "status" => "success",
-            "message" => "Task added successfully.",
-            "shouldUpdateTodos" => true
+        // Map task type to its primary key column.
+        $idMap = [
+            'Assignment' => 'asmnt_id',
+            'Quiz' => 'qz_id',
+            'Project' => 'proj_id',
+            'MT' => 'mt_id',
+            'Final' => 'final_id'
+        ];
+        $idColumn = $idMap[$task_type];
+
+        // Check for duplicate task.
+        $stmt = $conn->prepare("SELECT $idColumn FROM $tableName WHERE user_id = ? AND start_date = ? AND course_id = ? AND title = ?");
+        $stmt->execute([$user_id, $start_date, $course_id, $title]);
+        if ($stmt->fetch()) {
+            error_log("Duplicate task found");
+            echo json_encode(["status" => "error", "message" => "A task with the same title already exists for this course and start date."]);
+            exit;
+        }
+
+        // Insert the new task.
+        $sql = "INSERT INTO $tableName 
+               (user_id, start_date, course_id, title, from_date, to_date, status, suggested_date, actual_start_date, actual_end_date, percent, priority, details)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        error_log("Executing SQL: $sql");
+        error_log("With parameters: " . print_r([
+            $user_id,
+            $start_date,
+            $course_id,
+            $title,
+            $from_date,
+            $to_date,
+            $status,
+            $suggested_date,
+            $actual_start_date,
+            $actual_end_date,
+            $percent,
+            $priority,
+            $details
+        ], true));
+
+        $stmt = $conn->prepare($sql);
+        $result = $stmt->execute([
+            $user_id,
+            $start_date,
+            $course_id,
+            $title,
+            $from_date,
+            $to_date,
+            $status,
+            $suggested_date,
+            $actual_start_date,
+            $actual_end_date,
+            $percent,
+            $priority,
+            $details
         ]);
-    } else {
-        echo json_encode(["status" => "error", "message" => "Error inserting task."]);
+
+        if ($result) {
+            error_log("Task added successfully");
+            echo json_encode([
+                "status" => "success",
+                "message" => "Task added successfully.",
+                "shouldUpdateTodos" => true
+            ]);
+        } else {
+            error_log("Error inserting task: " . print_r($stmt->errorInfo(), true));
+            echo json_encode(["status" => "error", "message" => "Error inserting task."]);
+        }
+    } catch (PDOException $e) {
+        error_log("Database error: " . $e->getMessage());
+        echo json_encode(["status" => "error", "message" => "Database error occurred: " . $e->getMessage()]);
+    } catch (Exception $e) {
+        error_log("General error: " . $e->getMessage());
+        echo json_encode(["status" => "error", "message" => "An error occurred: " . $e->getMessage()]);
     }
     exit;
 } // -------------------- Action: Delete Task --------------------
@@ -407,6 +533,13 @@ elseif ($action === 'editTask') {
             exit;
         }
 
+        // Add date validation
+        $dateErrors = validateTaskDates($from_date, $to_date, $suggested_date, $actual_start_date, $actual_end_date, $start_date);
+        if (!empty($dateErrors)) {
+            echo json_encode(['status' => 'error', 'message' => implode(" ", $dateErrors)]);
+            exit;
+        }
+
         // Add detailed logging before executing the SQL statement
         error_log("[DEBUG] Preparing to execute SQL statement for task update.");
 
@@ -450,6 +583,168 @@ elseif ($action === 'editTask') {
         error_log("Exception: " . $e->getMessage());
         echo json_encode(['status' => 'error', 'message' => 'An unexpected error occurred.']);
     }
+} // Handle visibility update
+elseif ($action === 'updateVisibility') {
+    error_log("\n\nUpdateVisibility action called");
+    error_log("POST data received: " . print_r($_POST, true));
+
+    if (!isset($_SESSION['signupUserId'])) {
+        error_log("User not logged in");
+        echo json_encode(['status' => 'error', 'message' => 'User not logged in']);
+        exit;
+    }
+
+    $userId = $_SESSION['signupUserId'];
+
+    // Ensure hideSubmitted is properly parsed from the POST data
+    if (!isset($_POST['hideSubmitted'])) {
+        error_log("hideSubmitted parameter missing");
+        echo json_encode(['status' => 'error', 'message' => 'Missing hideSubmitted parameter']);
+        exit;
+    }
+
+    // Convert the hideSubmitted value to boolean
+    $hideSubmitted = filter_var($_POST['hideSubmitted'], FILTER_VALIDATE_BOOLEAN);
+
+    error_log("Processing visibility update:");
+    error_log(" > User ID: " . $userId);
+    error_log(" > Hide Submitted (raw): " . $_POST['hideSubmitted']);
+    error_log(" > Hide Submitted (parsed): " . ($hideSubmitted ? 'true' : 'false'));
+
+    try {
+        // First check if a record exists and get current preferences
+        $checkStmt = $conn->prepare("SELECT pref_id, tasks_visibility FROM UserPreferences WHERE user_id = ?");
+        $checkStmt->execute([$userId]);
+        $existingPrefs = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+        error_log(" > Existing preferences: " . print_r($existingPrefs, true));
+
+        // Prepare the visibility JSON
+        $visibilityData = ['hide_submitted_tasks' => $hideSubmitted];
+
+        if ($existingPrefs) {
+            // Update existing preferences
+            error_log(" > Updating existing preferences");
+
+            // If there's existing visibility data, merge it
+            if ($existingPrefs['tasks_visibility']) {
+                $currentVisibility = json_decode($existingPrefs['tasks_visibility'], true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $visibilityData = array_merge($currentVisibility, $visibilityData);
+                }
+            }
+
+            $visibilityJson = json_encode($visibilityData, JSON_FORCE_OBJECT);
+            error_log(" > Updating with visibility JSON: " . $visibilityJson);
+
+            $updateSql = "UPDATE UserPreferences SET tasks_visibility = :visibility WHERE user_id = :userId";
+            $stmt = $conn->prepare($updateSql);
+            $stmt->bindParam(':userId', $userId, PDO::PARAM_INT);
+            $stmt->bindParam(':visibility', $visibilityJson, PDO::PARAM_STR);
+            $success = $stmt->execute();
+        } else {
+            // Insert new record
+            error_log(" > No existing preferences found, creating new record");
+            $visibilityJson = json_encode($visibilityData, JSON_FORCE_OBJECT);
+            error_log(" > Inserting new record with visibility: " . $visibilityJson);
+
+            $insertSql = "INSERT INTO UserPreferences (user_id, first_name, last_name, student_id, tasks_visibility) 
+                         VALUES (:userId, '', '', '', :visibility)";
+            $stmt = $conn->prepare($insertSql);
+            $stmt->bindParam(':userId', $userId, PDO::PARAM_INT);
+            $stmt->bindParam(':visibility', $visibilityJson, PDO::PARAM_STR);
+            $success = $stmt->execute();
+        }
+
+        error_log(" > Query execution " . ($success ? 'successful' : 'failed'));
+
+        if ($success) {
+            // Verify the update
+            $verifySql = "SELECT tasks_visibility FROM UserPreferences WHERE user_id = ?";
+            $verifyStmt = $conn->prepare($verifySql);
+            $verifyStmt->execute([$userId]);
+            $result = $verifyStmt->fetch(PDO::FETCH_ASSOC);
+
+            error_log(" > Verification query result: " . print_r($result, true));
+
+            if ($result && isset($result['tasks_visibility'])) {
+                $storedVisibility = json_decode($result['tasks_visibility'], true);
+                error_log(" > Stored visibility setting: " . print_r($storedVisibility, true));
+
+                if (isset($storedVisibility['hide_submitted_tasks'])) {
+                    error_log(" > Visibility setting successfully verified");
+                    echo json_encode([
+                        'status' => 'success',
+                        'hide_submitted_tasks' => $storedVisibility['hide_submitted_tasks']
+                    ]);
+                } else {
+                    error_log(" > Verification failed - stored value doesn't match expected structure");
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'Visibility setting verification failed'
+                    ]);
+                }
+            } else {
+                error_log(" > Verification failed - no data found");
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Failed to verify visibility setting'
+                ]);
+            }
+        } else {
+            $errorInfo = $stmt->errorInfo();
+            error_log(" > Database error: " . print_r($errorInfo, true));
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Failed to update visibility setting'
+            ]);
+        }
+    } catch (PDOException $e) {
+        error_log(" > Exception: " . $e->getMessage());
+        echo json_encode(['status' => 'error', 'message' => 'Database error occurred']);
+    }
+    exit;
+} elseif ($action === 'getVisibilityPreference') {
+    error_log("\n\ngetVisibilityPreference action called");
+
+    if (!isset($_SESSION['signupUserId'])) {
+        error_log("User not logged in");
+        echo json_encode(['status' => 'error', 'message' => 'User not logged in']);
+        exit;
+    }
+
+    $userId = $_SESSION['signupUserId'];
+    error_log("Fetching visibility preference for user $userId");
+
+    try {
+        $sql = "SELECT tasks_visibility FROM UserPreferences WHERE user_id = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([$userId]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($result && $result['tasks_visibility']) {
+            $visibility = json_decode($result['tasks_visibility'], true);
+            $hideSubmitted = isset($visibility['hide_submitted_tasks']) ?
+                filter_var($visibility['hide_submitted_tasks'], FILTER_VALIDATE_BOOLEAN) :
+                false;
+
+            error_log("Found preference: " . print_r($visibility, true));
+            echo json_encode([
+                'status' => 'success',
+                'hide_submitted_tasks' => $hideSubmitted
+            ]);
+        } else {
+            error_log("No preference found, using default");
+            echo json_encode([
+                'status' => 'success',
+                'hide_submitted_tasks' => false // Default value if not set
+            ]);
+        }
+    } catch (PDOException $e) {
+        error_log("Error fetching visibility setting: " . $e->getMessage());
+        echo json_encode(['status' => 'error', 'message' => 'Database error occurred']);
+    }
+    exit;
 } else {
     echo json_encode(["status" => "error", "message" => "Invalid action."]);
     exit;

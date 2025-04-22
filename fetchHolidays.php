@@ -14,12 +14,12 @@ require_once("db.php");
 session_start();
 
 // Check if user is logged in
-if (!isset($_SESSION['loggedinID'])) {
-    echo json_encode(["error" => "User not logged in."]);
+if (!isset($_SESSION['signupUserId'])) {
+    echo json_encode(["status" => "error", "message" => "User not logged in."]);
     exit;
 }
 
-$user_id = $_SESSION['loggedinID'];
+$user_id = $_SESSION['signupUserId'];
 
 // ================================
 // GET Holidays for the User
@@ -55,7 +55,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["action"]) && $_POST["
         echo json_encode(["success" => false, "error" => "Missing required fields."]);
         exit;
     }
-    
+
     $title      = trim($_POST['title']);
     $from_date  = $_POST['from_date'];
     $to_date    = $_POST['to_date'];
@@ -63,7 +63,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["action"]) && $_POST["
     $courses    = isset($_POST['courses']) ? $_POST['courses'] : 0;
 
     // Check that none of the required fields are empty.
-    if (empty($title) || ( empty($from_date) && empty($to_date) ) || empty($start_date)) {
+    if (empty($title) || (empty($from_date) && empty($to_date)) || empty($start_date)) {
         echo json_encode(["success" => false, "error" => "All fields are required."]);
         exit;
     }
@@ -74,7 +74,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["action"]) && $_POST["
     } elseif (empty($to_date) && !empty($from_date)) {
         $to_date = $from_date;
     }
-    
+
     // Check if from_date is greater than to_date; if so, swap them.
     if (strtotime($from_date) > strtotime($to_date)) {
         $temp = $from_date;
@@ -155,4 +155,3 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["action"]) && $_POST["
     }
     exit;
 }
-?>

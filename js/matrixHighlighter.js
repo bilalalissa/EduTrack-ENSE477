@@ -62,28 +62,65 @@
     }
 
     holidays.forEach((holiday, index) => {
-      // Assign each holiday to a row based on its index.
       const rowIndex = index % matrixRows.length;
-      console.log(`Highlighting row ${rowIndex} for holiday "${holiday.title}"`);
-      let holidayTitleInserted = false;
+      console.log(`Highlighting row ${rowIndex} for holiday "${holiday.title}" (has classes: ${holiday.courses})`);
+      let firstCellFound = false;
+      let firstCell = null;
+      let lastCell = null;
+      let holidayCells = [];
+
       Array.from(matrixRows[rowIndex].children).forEach((cell, colIndex) => {
         const cellDate = addDays(window.startDateForMatrix, colIndex);
         const cellDateStr = dateToYMD(cellDate);
         if (cellDateStr >= holiday.from_date && cellDateStr <= holiday.to_date) {
-          if (holiday.courses) {
+          // Clear any existing classes and styles
+          cell.className = 'matrix-cell';
+          cell.style.cssText = '';
+
+          // Check if holiday has classes by checking if courses is 1
+          const hasClasses = holiday.courses === 1 || holiday.courses === "1";
+
+          if (hasClasses) {
             cell.classList.add("holiday-cell-yes");
           } else {
             cell.classList.add("holiday-cell-no");
           }
-          // Insert the holiday title into the first qualifying cell.
-          if (!holidayTitleInserted) {
-            cell.textContent = holiday.title;
-            holidayTitleInserted = true;
+
+          // Store reference to cells
+          holidayCells.push(cell);
+
+          if (!firstCellFound) {
+            firstCell = cell;
+            firstCellFound = true;
           }
+          lastCell = cell;
         }
       });
+
+      // Add the holiday title to the first cell
+      if (firstCell && holidayCells.length > 0) {
+        // Remove any existing holiday titles
+        const existingTitles = firstCell.getElementsByClassName('holiday-title');
+        Array.from(existingTitles).forEach(title => title.remove());
+
+        // Create and add new title
+        const titleSpan = document.createElement('span');
+        titleSpan.className = 'holiday-title';
+        titleSpan.textContent = holiday.title;
+        firstCell.appendChild(titleSpan);
+
+        // Ensure cells form a continuous block
+        holidayCells.forEach((cell, idx) => {
+          cell.style.borderRight = 'none';
+          cell.style.borderLeft = 'none';
+          cell.style.marginLeft = '0';
+          cell.style.marginRight = '0';
+          cell.style.paddingLeft = '0';
+          cell.style.paddingRight = '0';
+        });
+      }
     });
-    // Save the number of holiday rows used.
+
     window.holidayRowsCount = Math.min(holidays.length, matrixRows.length);
   }
 
@@ -339,11 +376,87 @@
         }
 
         // Check visibility setting for submitted tasks
-        const showSubmittedTasks = localStorage.getItem('showSubmittedTasks') !== 'false';
-        if (task.status === 'submitted' && !showSubmittedTasks) {
-          row.style.display = 'none'; // Hide the entire row
-          cell.style.backgroundColor = 'transparent';
-          return;
+        if (task.status === 'submitted') {
+          console.log('Processing submitted task:', task);
+
+          // First check database preference
+          fetch('tasksHandler.php', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'action=getVisibilityPreference'
+          })
+            .then(response => {
+              if (!response.ok) {
+                throw new Error('Network response was not ok');
+              }
+              return response.json();
+            })
+            .then(result => {
+              console.log('Got visibility preference:', result);
+              if (result.status === 'success') {
+                const showTasks = !result.hide_submitted_tasks;
+                console.log('Should show submitted tasks:', showTasks);
+
+                // Update both the row and cell visibility
+                if (!showTasks) {
+                  row.style.display = 'none';
+                  if (cell) {
+                    cell.style.backgroundColor = 'transparent';
+                  }
+                  console.log('Hiding submitted task row:', row.getAttribute('data-id'));
+                } else {
+                  row.style.display = '';
+                  if (cell) {
+                    cell.style.backgroundColor = bgColor;
+                  }
+                  console.log('Showing submitted task row:', row.getAttribute('data-id'));
+                }
+
+                // Update the checkbox if it exists
+                const hideSubmittedTasksToggle = document.getElementById('hideSubmittedTasks');
+                if (hideSubmittedTasksToggle) {
+                  hideSubmittedTasksToggle.checked = showTasks;
+                }
+
+                // Store in localStorage for backup
+                localStorage.setItem('showSubmittedTasks', showTasks);
+              } else {
+                console.error('Error getting visibility preference:', result.message);
+                // Fallback to localStorage
+                handleVisibilityFallback(row, cell, bgColor);
+              }
+            })
+            .catch(error => {
+              console.error("Error fetching visibility preference:", error);
+              // Fallback to localStorage
+              handleVisibilityFallback(row, cell, bgColor);
+            });
+        }
+
+        // Helper function for visibility fallback
+        function handleVisibilityFallback(row, cell, bgColor) {
+          const showSubmittedTasks = localStorage.getItem('showSubmittedTasks') !== 'false';
+          console.log('Falling back to localStorage, showSubmittedTasks:', showSubmittedTasks);
+
+          if (!showSubmittedTasks) {
+            row.style.display = 'none';
+            if (cell) {
+              cell.style.backgroundColor = 'transparent';
+            }
+          } else {
+            row.style.display = '';
+            if (cell) {
+              cell.style.backgroundColor = bgColor;
+            }
+          }
+
+          // Update the checkbox if it exists
+          const hideSubmittedTasksToggle = document.getElementById('hideSubmittedTasks');
+          if (hideSubmittedTasksToggle) {
+            hideSubmittedTasksToggle.checked = showSubmittedTasks;
+          }
         }
 
         // Apply base styles to the cell

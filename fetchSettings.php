@@ -9,7 +9,7 @@ header('Content-Type: application/json');
 ////////////////////////
 // Debugging System
 ////////////////////////
-$user_id = $_SESSION['loggedinID']; // Get the logged-in user's ID
+$user_id = $_SESSION['signupUserId']; // Get the logged-in user's ID
 $username = $_SESSION['loggedinUsername']; // Get the logged-in user's username
 // Initialize logging system
 function debug_to_db($message, &$debug_log)
@@ -32,7 +32,7 @@ function log_to_db($user_id, $log_data, $conn)
         if ($user_id === null) {
             $user_id = 0; // Default to system user if no user is logged in
         } else {
-            $user_id = $_SESSION['loggedinID']; // Get the logged-in user's ID
+            $user_id = $_SESSION['signupUserId']; // Get the logged-in user's ID
             $username = $_SESSION['loggedinUsername']; // Get the logged-in user's username
         }
         $stmt = $conn->prepare("INSERT INTO Logs (user_id, log_data) VALUES (:user_id, :log_data)");

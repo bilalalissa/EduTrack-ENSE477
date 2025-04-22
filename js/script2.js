@@ -130,6 +130,18 @@ window.scrollMatrixToWeekBeforeToday = scrollMatrixToWeekBeforeToday;
 // ----- New: Function to update schedule matrix task highlighting -----
 function updateScheduleMatrixTasks() {
     return new Promise((resolve, reject) => {
+        console.log('Starting matrix task update...');
+
+        // Clear existing task highlights first
+        const matrixCells = document.querySelectorAll('.schd-matrix td');
+        matrixCells.forEach(cell => {
+            cell.classList.remove('task-highlight', 'task-highlight-submitted');
+            cell.removeAttribute('data-task-id');
+            cell.removeAttribute('data-task-title');
+        });
+
+        console.log('Cleared existing task highlights');
+
         // If we have filtered tasks, use those directly
         if (window.filteredTasks) {
             console.log("Using filtered tasks for highlighting:", window.filteredTasks);
@@ -137,52 +149,68 @@ function updateScheduleMatrixTasks() {
                 // Ensure task type is set correctly
                 const processedTasks = window.filteredTasks.map(task => ({
                     ...task,
-                    task_type: task.type || task.task_type, // Ensure task_type is set
-                    type: task.type || task.task_type // Ensure type is set
+                    task_type: task.type || task.task_type,
+                    type: task.type || task.task_type
                 }));
-                console.log("Processed tasks:", processedTasks);
+                console.log("Processing filtered tasks:", processedTasks);
                 highlightTaskRows(processedTasks);
-                console.log("Filtered task highlighting completed.");
+                console.log("Filtered task highlighting completed");
                 resolve();
             } else {
-                console.error("highlightTaskRows function is not defined.");
-                reject("highlightTaskRows function is not defined.");
+                console.error("highlightTaskRows function is not defined");
+                reject(new Error("highlightTaskRows function is not defined"));
             }
             return;
         }
 
-        // Otherwise, fetch all tasks as normal
+        // Otherwise, fetch all tasks
+        console.log('Fetching all tasks for matrix update...');
         $.ajax({
             url: 'tasksHandler.php',
             type: 'POST',
             dataType: 'json',
             data: { action: 'list', task_type: 'all' },
             success: function (response) {
+                console.log('Received tasks response:', response);
+
                 if (response.status === 'success') {
-                    console.log("Fetched tasks:", response.tasks);
                     if (typeof highlightTaskRows === 'function') {
                         // Process tasks to ensure type fields are set
                         const processedTasks = response.tasks.map(task => ({
                             ...task,
-                            task_type: task.type || task.task_type, // Ensure task_type is set
-                            type: task.type || task.task_type // Ensure type is set
+                            task_type: task.type || task.task_type,
+                            type: task.type || task.task_type
                         }));
-                        console.log("Processed tasks:", processedTasks);
+
+                        console.log("Processing tasks for highlighting:", processedTasks);
                         highlightTaskRows(processedTasks);
-                        console.log("Task highlighting completed.");
+                        console.log("Task highlighting completed");
+
+                        // Update any task counters or summaries if they exist
+                        if (typeof updateTaskCounters === 'function') {
+                            updateTaskCounters(processedTasks);
+                        }
+
                         resolve();
                     } else {
-                        console.error("highlightTaskRows function is not defined.");
-                        reject("highlightTaskRows function is not defined.");
+                        const error = new Error("highlightTaskRows function is not defined");
+                        console.error(error);
+                        reject(error);
                     }
                 } else {
-                    console.error("Failed to fetch tasks for schedule matrix:", response.message);
-                    reject(response.message);
+                    const error = new Error("Failed to fetch tasks: " + response.message);
+                    console.error(error);
+                    reject(error);
                 }
             },
             error: function (xhr, status, error) {
-                console.error("Error fetching tasks for schedule matrix:", error);
-                reject(error);
+                const errorMsg = "Error fetching tasks: " + error;
+                console.error(errorMsg, {
+                    status: status,
+                    error: error,
+                    responseText: xhr.responseText
+                });
+                reject(new Error(errorMsg));
             }
         });
     });
@@ -282,13 +310,18 @@ if (taskBtn) {
 //                         Handling Tasks 
 // ============================================================== 
 $(document).ready(function () {
-    const addTaskBtn = $('#addTaskBtn');
-    const tasksForm = $('#tasksForm');
-    const tasksList = $('.tasksList');
-    const submitTaskBtn = tasksForm.find('button[type="submit"]');
+    // Cache jQuery selectors
+    const $tasksForm = $('#tasksForm');
+    const $addTaskBtn = $('#addTaskBtn');
+    const $tasksList = $('.tasksList');
+    const $submitTaskBtn = $tasksForm.find('button[type="submit"]');
 
-    // Initially hide the tasks form.
-    if (tasksForm) tasksForm.hide();
+    console.log('Document ready, initializing tasks form handlers');
+    console.log('Found form:', $tasksForm.length > 0);
+    console.log('Found submit button:', $submitTaskBtn.length > 0);
+
+    // Initially hide the tasks form
+    $tasksForm.hide();
 
     // Function to load tasks via AJAX and group them by course.
     function loadTasks() {
@@ -327,7 +360,7 @@ $(document).ready(function () {
                         }
                         html += `</ul></li>`;
                     }
-                    if (tasksList) tasksList.html(html);
+                    if ($tasksList) $tasksList.html(html);
                 } else {
                     alert("Failed to load tasks: " + response.message);
                 }
@@ -341,16 +374,26 @@ $(document).ready(function () {
     // Load tasks when the page loads.
     loadTasks();
 
-    // Show tasks form when "+ Add Task" button is clicked.
-    if (addTaskBtn) addTaskBtn.on('click', function () {
-        if (tasksForm) tasksForm.slideDown();
-        if (addTaskBtn) addTaskBtn.hide();
+    // Setup date validation when form is shown
+    if ($addTaskBtn) $addTaskBtn.on('click', function () {
+        if ($tasksForm) {
+            $tasksForm.slideDown();
+            // scroll to the form
+            $('html, body').animate({ scrollTop: $tasksForm.offset().top }, 'slow');
+            setupDateValidation();
+            $addTaskBtn.hide();
+        }
     });
 
     // Handle edit button click.
     $(document).on('click', '.editSaveBtn', function () {
         const taskId = $(this).data('id');
         const taskType = $(this).data('type');
+
+        // Add task_id hidden field if it doesn't exist
+        if (!$('#task_id').length) {
+            $tasksForm.prepend('<input type="hidden" id="task_id" name="task_id">');
+        }
 
         // Fetch task details via AJAX
         $.ajax({
@@ -361,7 +404,10 @@ $(document).ready(function () {
             success: function (response) {
                 if (response.status === 'success') {
                     const task = response.task;
+                    console.log('Populating form with task:', task);
+
                     // Populate the form with task details
+                    $('#task_id').val(taskId);
                     $('#course_id').val(task.course_id);
                     $('#task_type').val(task.task_type);
                     $('#title').val(task.title);
@@ -375,12 +421,17 @@ $(document).ready(function () {
                     $('#priority').val(task.priority);
                     $('#details').val(task.details);
 
-                    // Change submit button text to "Save"
-                    submitTaskBtn.text('Save');
+                    // Change submit button text to "Save Changes"
+                    $submitTaskBtn.text('Save Changes');
 
-                    // Show the form and scroll to it
-                    tasksForm.slideDown();
-                    $('html, body').animate({ scrollTop: tasksForm.offset().top }, 'slow');
+                    // Show the form and hide the add button
+                    $tasksForm.slideDown();
+                    $addTaskBtn.hide();
+
+                    // Scroll to the form
+                    $('html, body').animate({
+                        scrollTop: $tasksForm.offset().top
+                    }, 'slow');
                 } else {
                     alert("Failed to fetch task details: " + response.message);
                 }
@@ -391,102 +442,232 @@ $(document).ready(function () {
         });
     });
 
-    // Handle tasks form submission via AJAX.
-    tasksForm.on('submit', function (e) {
-        console.log("\n\nscript2.js / tasksForm.on {saving a new task} started/n");
+    // Helper function to clear all error messages and validation states
+    function clearAllErrors() {
+        $('.error-message').remove();
+        $('.invalid').removeClass('invalid');
+    }
+
+    // Handle Cancel button click.
+    $('#cancelTaskBtn').on('click', function () {
+        if (confirm("Are you sure you want to cancel editing?")) {
+            clearAllErrors(); // Clear all error messages
+            $tasksForm[0].reset();
+            $tasksForm.slideUp();
+            if ($addTaskBtn) $addTaskBtn.show();
+            alert("Task editing canceled.");
+        }
+    });
+
+    // Handle form submission with direct jQuery binding
+    $('#tasksForm').submit(function (e) {
         e.preventDefault();
-        const courseId = $('#course_id').val();
-        const taskType = $('#task_type').val();
-        const title = $('#title').val().trim();
-        const fromDate = $('#from_date').val();
-        const toDate = $('#to_date').val();
-        const status = $('#status').val();
-        const suggestedDate = $('#suggested_date').val();
-        const percent = $('#percent').val();
-        const priority = $('#priority').val();
-        const details = $('#details').val();
-        const startDate = $('input[name="startDate"]:checked').val(); // get the value of the checked radio button
-        const actualStartDate = $('#actual_start_date').val();
-        const actualEndDate = $('#actual_end_date').val();
+        console.log('Form submitted - direct binding');
 
-        // log the data to be sent to the server.
-        console.log("{saving a new task} \n > Sending data:", {
-            action: 'add',
-            course_id: courseId,
-            task_type: taskType,
-            title: title,
-            from_date: fromDate,
-            to_date: toDate,
-            status: status,
-            suggested_date: suggestedDate,
-            actual_start_date: actualStartDate,
-            actual_end_date: actualEndDate,
-            percent: percent,
-            priority: priority,
-            details: details,
-            start_date: startDate
-        });
+        // Clear any previous error messages
+        clearAllErrors();
 
+        const formData = {
+            courseId: $('#course_id').val(),
+            taskType: $('#task_type').val(),
+            title: $('#title').val().trim(),
+            fromDate: $('#from_date').val(),
+            toDate: $('#to_date').val(),
+            status: $('#status').val(),
+            suggestedDate: $('#suggested_date').val(),
+            percent: $('#percent').val(),
+            priority: $('#priority').val(),
+            details: $('#details').val(),
+            startDate: $('#start_date').val(),
+            actualStartDate: $('#actual_start_date').val(),
+            actualEndDate: $('#actual_end_date').val(),
+            taskId: $('#task_id').val()
+        };
+
+        const isEditing = !!formData.taskId;
+
+        console.log('Form data collected:', formData);
+        console.log('Is editing:', isEditing);
+
+        // Validate required fields first
+        let hasErrors = false;
+        if (!formData.courseId) {
+            showError($('#course_id'), 'Course selection is required');
+            hasErrors = true;
+        }
+        if (!formData.taskType) {
+            showError($('#task_type'), 'Task type is required');
+            hasErrors = true;
+        }
+        if (!formData.title) {
+            showError($('#title'), 'Title is required');
+            hasErrors = true;
+        }
+
+        // Validate dates
+        const dateErrors = validateDates(
+            formData.fromDate,
+            formData.toDate,
+            formData.suggestedDate,
+            formData.actualStartDate,
+            formData.actualEndDate,
+            formData.startDate
+        );
+
+        if (dateErrors.length > 0) {
+            dateErrors.forEach(error => {
+                if (error.toLowerCase().includes('from date')) {
+                    showError($('#from_date'), error);
+                    hasErrors = true;
+                }
+                if (error.toLowerCase().includes('to date')) {
+                    showError($('#to_date'), error);
+                    hasErrors = true;
+                }
+                if (error.toLowerCase().includes('suggested date')) {
+                    showError($('#suggested_date'), error);
+                    hasErrors = true;
+                }
+                if (error.toLowerCase().includes('actual start date')) {
+                    showError($('#actual_start_date'), error);
+                    hasErrors = true;
+                }
+                if (error.toLowerCase().includes('actual end date')) {
+                    showError($('#actual_end_date'), error);
+                    hasErrors = true;
+                }
+            });
+        }
+
+        // If there are any validation errors, stop form submission
+        if (hasErrors) {
+            console.log('Validation errors found, stopping submission');
+            return false;
+        }
+
+        console.log('Validation passed, proceeding with submission');
+
+        // Clear all error messages since validation passed
+        clearAllErrors();
+
+        // If validation passes, proceed with form submission
         $.ajax({
             url: 'tasksHandler.php',
             type: 'POST',
             dataType: 'json',
             data: {
-                action: 'add',
-                course_id: courseId,
-                task_type: taskType,
-                title: title,
-                from_date: fromDate,
-                to_date: toDate,
-                status: status,
-                suggested_date: suggestedDate,
-                actual_start_date: actualStartDate,
-                actual_end_date: actualEndDate,
-                percent: percent,
-                priority: priority,
-                details: details,
-                start_date: startDate
+                action: isEditing ? 'editTask' : 'add',
+                id: formData.taskId,
+                course_id: formData.courseId,
+                task_type: formData.taskType,
+                title: formData.title,
+                from_date: formData.fromDate,
+                to_date: formData.toDate,
+                status: formData.status,
+                suggested_date: formData.suggestedDate,
+                actual_start_date: formData.actualStartDate,
+                actual_end_date: formData.actualEndDate,
+                percent: formData.percent,
+                priority: formData.priority,
+                details: formData.details,
+                start_date: formData.startDate
+            },
+            beforeSend: function () {
+                console.log('Sending AJAX request for ' + (isEditing ? 'edit' : 'add') + ' task...');
+                // Disable the submit button to prevent double submission
+                $('#submitTaskBtn').prop('disabled', true);
             },
             success: function (response) {
+                console.log('Server Response:', response);
+
                 if (response.status === 'success') {
-                    alert("Task saved successfully.");
-                    submitTaskBtn.text('Submit Task');
-                    tasksForm[0].reset();
-                    tasksForm.slideUp();
-                    loadTasks(); // Reload tasks list after saving.
-                    if (addTaskBtn) addTaskBtn.show(); // Show the Add Task button
+                    console.log('Task ' + (isEditing ? 'updated' : 'added') + ' successfully');
+
+                    // Show success message
+                    alert(isEditing ? "Task updated successfully." : "Task saved successfully.");
+
+                    // Reset form and UI
+                    console.log('Resetting form and UI...');
+
+                    // Clear all form fields
+                    $('#tasksForm')[0].reset();
+
+                    // Clear the task ID
+                    $('#task_id').val('');
+
+                    // Reset submit button text and enable it
+                    $('#submitTaskBtn')
+                        .text('Submit Task')
+                        .prop('disabled', false);
+
+                    // Hide the form and show the add button
+                    $('#tasksForm').slideUp(400, function () {
+                        $('#addTaskBtn').fadeIn();
+                        console.log('Form hidden and Add Task button shown');
+                    });
+
+                    // Clear any remaining error messages
+                    clearAllErrors();
+
+                    // Reload tasks list
+                    console.log('Reloading tasks list...');
+                    loadTasks();
+
+                    // Update matrix
+                    console.log('Updating schedule matrix...');
                     updateScheduleMatrixTasks().then(() => {
-                        console.log("Tasks updated, now scrolling.");
+                        console.log('Schedule matrix updated successfully');
                         scrollMatrixToWeekBeforeToday();
                     }).catch(error => {
-                        console.error("Error in updating schedule matrix tasks:", error);
+                        console.error('Error updating schedule matrix:', error);
                     });
                 } else {
-                    alert("Failed to save task: " + response.message);
+                    console.error('Server returned error:', response);
+                    alert("Failed to " + (isEditing ? "update" : "save") + " task: " + (response.message || "Unknown error"));
+                    // Re-enable the submit button
+                    $('#submitTaskBtn').prop('disabled', false);
                 }
             },
             error: function (xhr, status, error) {
-                console.error("Error saving task:", error);
+                console.error('AJAX Error:', {
+                    status: status,
+                    error: error,
+                    responseText: xhr.responseText,
+                    readyState: xhr.readyState,
+                    statusCode: xhr.status,
+                    statusText: xhr.statusText
+                });
+
+                try {
+                    const errorResponse = JSON.parse(xhr.responseText);
+                    console.log('Parsed error response:', errorResponse);
+                    alert("Error " + (isEditing ? "updating" : "saving") +
+                        " task: " + (errorResponse.message || error));
+                } catch (e) {
+                    console.error('Error parsing server response:', e);
+                    alert("Error " + (isEditing ? "updating" : "saving") +
+                        " task. Please check the console for details.");
+                }
+                // Re-enable the submit button
+                $('#submitTaskBtn').prop('disabled', false);
             }
         });
-    });
-
-    // Handle Cancel button click.
-    $('#cancelTaskBtn').on('click', function () {
-        if (confirm("Are you sure you want to cancel editing?")) {
-            tasksForm[0].reset();
-            tasksForm.slideUp();
-            if (addTaskBtn) addTaskBtn.show();
-            alert("Task editing canceled.");
-        }
     });
 
     // --- Handling Task Deletion ---
     // Listen for clicks on any delete button in the tasks list.
     if ($(document)) $(document).on('click', '.delBtn', function () {
         if (!confirm("Are you sure you want to delete this task?")) return;
+
         const taskId = $(this).data('id');
         const taskType = $(this).data('type');
+
+        console.log('Deleting task:', { taskId, taskType });
+
+        // Disable the delete button to prevent double-clicks
+        const $deleteButton = $(this);
+        $deleteButton.prop('disabled', true);
+
         $.ajax({
             url: 'tasksHandler.php',
             type: 'POST',
@@ -497,21 +678,52 @@ $(document).ready(function () {
                 task_type: taskType
             },
             success: function (response) {
+                console.log('Delete response:', response);
+
                 if (response.status === 'success') {
-                    alert("Task deleted successfully.");
-                    loadTasks(); // Reload tasks list after saving.
-                    updateScheduleMatrixTasks().then(() => {
-                        console.log("Tasks updated, now scrolling.");
-                        scrollMatrixToWeekBeforeToday();
-                    }).catch(error => {
-                        console.error("Error in updating schedule matrix tasks:", error);
-                    });
+                    // First update the tasks list
+                    console.log('Task deleted, updating tasks list...');
+                    loadTasks();
+
+                    // Then update the matrix
+                    console.log('Updating schedule matrix...');
+                    updateScheduleMatrixTasks()
+                        .then(() => {
+                            console.log('Matrix updated successfully after deletion');
+                            // Force a refresh of the matrix display
+                            const schdMatrix = document.querySelector(".schd-matrix");
+                            if (schdMatrix) {
+                                const currentScroll = schdMatrix.scrollLeft;
+                                schdMatrix.style.display = 'none';
+                                setTimeout(() => {
+                                    schdMatrix.style.display = '';
+                                    schdMatrix.scrollLeft = currentScroll;
+                                    console.log('Matrix refreshed and scroll position restored');
+                                }, 50);
+                            }
+                            // Show success message
+                            alert("Task deleted successfully.");
+                        })
+                        .catch(error => {
+                            console.error('Error updating matrix after deletion:', error);
+                            alert("Task was deleted but there was an error updating the display. Please refresh the page.");
+                        });
                 } else {
+                    console.error('Failed to delete task:', response.message);
                     alert("Failed to delete task: " + response.message);
+                    // Re-enable the delete button on failure
+                    $deleteButton.prop('disabled', false);
                 }
             },
             error: function (xhr, status, error) {
-                console.error("Error deleting task:", error);
+                console.error('AJAX Error during deletion:', {
+                    status: status,
+                    error: error,
+                    responseText: xhr.responseText
+                });
+                alert("Error deleting task. Please try again.");
+                // Re-enable the delete button on error
+                $deleteButton.prop('disabled', false);
             }
         });
     });
@@ -640,6 +852,17 @@ $(document).ready(function () {
         });
     }
 
+    // Initially hide the courses form
+    if ($('#coursesForm')) $('#coursesForm').hide();
+
+    // Show courses form when "+ Add Course" button is clicked
+    if ($('#addCourseBtn')) $('#addCourseBtn').click(function () {
+        if ($('#coursesForm')) {
+            $('#coursesForm').slideDown();
+            $(this).hide(); // Hide the Add Course button
+        }
+    });
+
     // When the vertical "Courses" button is clicked, load the courses list.
     if ($('#coursesBtn')) $('#coursesBtn').click(function () {
         loadCourses();
@@ -648,9 +871,11 @@ $(document).ready(function () {
     // Handle submission of the courses form.
     if ($('#coursesForm')) $('#coursesForm').on('submit', function (e) {
         e.preventDefault();
-        var courseName = $('#courseName').val().trim();
-        var courseNotes = $('#courseNotes').val().trim();
-        var start_date = $('input[name="startDate"]:checked').val();
+        const courseName = $('#courseName').val().trim();
+        const courseNotes = $('#courseNotes').val().trim();
+        const start_date = $('input[name="startDate"]:checked').val();
+        const courseId = $('#courseId').val(); // Get the course ID if it exists
+        const isEditing = !!courseId; // Check if we're editing an existing course
 
         if (!start_date) {
             alert("Please select a start date in the Settings section.");
@@ -666,7 +891,8 @@ $(document).ready(function () {
             type: 'POST',
             dataType: 'json',
             data: {
-                action: 'add',
+                action: isEditing ? 'update' : 'add',
+                courseId: courseId,
                 courseName: courseName,
                 courseNotes: courseNotes,
                 start_date: start_date
@@ -674,10 +900,17 @@ $(document).ready(function () {
             success: function (response) {
                 alert(response.message);
                 if (response.status === 'success') {
-                    // Clear the form fields.
+                    // Clear the form fields and hidden courseId
                     if ($('#courseName')) $('#courseName').val('');
                     if ($('#courseNotes')) $('#courseNotes').val('');
-                    // Reload the courses list.
+                    if ($('#courseId')) $('#courseId').val('');
+                    // Reset submit button text
+                    $('#coursesForm button[type="submit"]').text('Submit');
+                    // Hide the courses form
+                    if ($('#coursesForm')) $('#coursesForm').slideUp();
+                    // Show the Add Course button
+                    if ($('#addCourseBtn')) $('#addCourseBtn').show();
+                    // Reload the courses list
                     loadCourses();
                 }
             },
@@ -687,31 +920,118 @@ $(document).ready(function () {
         });
     });
 
+    // Handle cancel button click in courses form
+    if ($('#cancelCourseBtn')) $('#cancelCourseBtn').click(function () {
+        // Clear the form fields
+        if ($('#courseName')) $('#courseName').val('');
+        if ($('#courseNotes')) $('#courseNotes').val('');
+        if ($('#courseId')) $('#courseId').val('');
+        // Reset submit button text
+        $('#coursesForm button[type="submit"]').text('Submit');
+        // Hide the form with animation
+        $('#coursesForm').slideUp();
+        // Show the Add Course button
+        $('#addCourseBtn').show();
+    });
+
     // Handle deletion of a courses.
-    if ($('.coursesList')) $('.coursesList').on('click', '.delBtn', function () {
+    if ($('.coursesList')) $('.coursesList').on('click', '.delBtn', function (e) {
+        // Prevent event bubbling to avoid triggering task delete handler
+        e.stopPropagation();
+        e.preventDefault();
+
         var courseId = $(this).data('id');
-        if (confirm("Are you sure you want to delete this course?")) {
+        if (confirm("Are you sure you want to delete this course?\n\nWarning: This will also delete all tasks associated with this course.")) {
             $.ajax({
                 url: 'courses_handler.php',
                 type: 'POST',
                 dataType: 'json',
-                data: { action: 'delete', courseId: courseId },
+                data: {
+                    action: 'delete',
+                    course_id: courseId
+                },
                 success: function (response) {
-                    alert(response.message);
                     if (response.status === 'success') {
+                        // First update the course list
                         loadCourses();
+
+                        // Then silently update tasks and matrix without showing alerts
+                        if (typeof loadTasks === 'function') {
+                            loadTasks();
+                        }
+                        if (typeof updateScheduleMatrixTasks === 'function') {
+                            updateScheduleMatrixTasks().then(() => {
+                                console.log("Tasks updated after course deletion");
+                            }).catch(error => {
+                                console.error("Error updating tasks after course deletion:", error);
+                            });
+                        }
+                    } else {
+                        alert("Failed to delete course: " + response.message);
                     }
                 },
                 error: function (xhr, status, error) {
                     console.error("AJAX Error:", error);
+                    alert("Error deleting course. Please try again.");
                 }
             });
         }
     });
 
-    // Placeholder for the Edit button.
-    if ($('.coursesList')) $('.coursesList').on('click', '.editSaveBtn', function () {
-        alert("Edit functionality will be implemented later.");
+    // Handle the process of clicking the Edit button.
+    if ($('.coursesList')) $('.coursesList').on('click', '.editSaveBtn', function (e) {
+        // Prevent event bubbling to avoid triggering task handlers
+        e.stopPropagation();
+        const courseId = $(this).data('id');
+        console.log('Edit button clicked for course:', courseId);
+
+        // Fetch course details via AJAX
+        $.ajax({
+            url: 'courses_handler.php',
+            type: 'POST',
+            dataType: 'json',
+            data: {
+                action: 'get', // Changed from 'getCourse' to 'get'
+                courseId: courseId
+            },
+            success: function (response) {
+                console.log('Course fetch response:', response);
+                if (response.status === 'success') {
+                    const course = response.course;
+                    console.log('Populating form with course:', course);
+
+                    // Populate the form with course details
+                    $('#courseName').val(course.courseName);
+                    $('#courseNotes').val(course.courseNotes);
+
+                    // Store the course ID in a hidden field for update
+                    if (!$('#courseId').length) {
+                        $('#coursesForm').append('<input type="hidden" id="courseId" name="courseId">');
+                    }
+                    $('#courseId').val(courseId);
+
+                    // Show the form and hide the Add Course button
+                    $('#coursesForm').slideDown();
+                    $('#addCourseBtn').hide();
+
+                    // Change submit button text to indicate editing
+                    $('#coursesForm button[type="submit"]').text('Save Changes');
+
+                    // Scroll to the form
+                    $('html, body').animate({
+                        scrollTop: $('#coursesForm').offset().top
+                    }, 'slow');
+                } else {
+                    console.error('Failed to fetch course:', response.message);
+                    alert("Failed to fetch course details: " + response.message);
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error("AJAX Error fetching course:", error);
+                console.error("Server response:", xhr.responseText);
+                alert("Error fetching course details. Please try again.");
+            }
+        });
     });
 });
 // ------------- x end of coursesSection Handlers x -------------- //
@@ -762,47 +1082,380 @@ function slideOut(element) {
     requestAnimationFrame(animate);
 }
 
-function updateSubmittedTasksVisibility(show) {
-    // Update localStorage
-    localStorage.setItem('showSubmittedTasks', show);
+function updateSubmittedTasksVisibility(show, skipServerUpdate = false) {
+    console.log('\n\nupdateSubmittedTasksVisibility called:', { show, skipServerUpdate });
 
-    // First, reset all row visibility for submitted tasks
+    // First update the UI immediately
+    const matrixRows = document.querySelectorAll('.matrix-row');
+    console.log('Found matrix rows:', matrixRows.length);
+
+    matrixRows.forEach(row => {
+        if (row.getAttribute('data-task-status') === 'submitted') {
+            console.log('Updating submitted row visibility:', {
+                rowId: row.getAttribute('data-id'),
+                show: show
+            });
+            row.style.display = show ? '' : 'none';
+        }
+    });
+
+    // Skip server update if specified (used when initializing from server data)
+    if (skipServerUpdate) {
+        console.log('Skipping server update as requested');
+        return;
+    }
+
+    // Update the database
+    const params = new URLSearchParams();
+    params.append('action', 'updateVisibility');
+    params.append('hideSubmitted', !show);
+
+    console.log('Sending request to update visibility:', { hideSubmitted: !show });
+
+    // Disable the toggle while the request is in progress
+    const hideSubmittedTasksToggle = document.getElementById('hideSubmittedTasks');
+    if (hideSubmittedTasksToggle) {
+        hideSubmittedTasksToggle.disabled = true;
+    }
+
+    fetch('tasksHandler.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: params.toString(),
+        credentials: 'same-origin'
+    })
+        .then(response => {
+            console.log('Raw response:', response);
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(result => {
+            console.log('Server response:', result);
+
+            // Re-enable the toggle
+            if (hideSubmittedTasksToggle) {
+                hideSubmittedTasksToggle.disabled = false;
+            }
+
+            if (result.status === 'success') {
+                // Verify that the server's state matches our intended state
+                const serverHideSubmitted = result.hide_submitted_tasks;
+                const currentShow = !serverHideSubmitted;
+
+                console.log('Server state verification:', {
+                    serverHideSubmitted,
+                    currentShow,
+                    intendedShow: show
+                });
+
+                if (currentShow !== show) {
+                    console.error('Server state mismatch, reverting to server state');
+                    // Update UI to match server state
+                    matrixRows.forEach(row => {
+                        if (row.getAttribute('data-task-status') === 'submitted') {
+                            row.style.display = currentShow ? '' : 'none';
+                        }
+                    });
+                    // Update checkbox to match server state
+                    if (hideSubmittedTasksToggle) {
+                        hideSubmittedTasksToggle.checked = currentShow;
+                    }
+                } else {
+                    // Update localStorage only if server update was successful
+                    localStorage.setItem('showSubmittedTasks', show);
+                    console.log('localStorage updated with showSubmittedTasks:', show);
+                }
+            } else {
+                console.error("Failed to update visibility setting:", result.message);
+                // Revert UI changes on error
+                revertVisibilityChanges(!show);
+            }
+        })
+        .catch(error => {
+            console.error("Error updating visibility setting:", error);
+            // Re-enable the toggle
+            if (hideSubmittedTasksToggle) {
+                hideSubmittedTasksToggle.disabled = false;
+            }
+            // Revert UI changes on error
+            revertVisibilityChanges(!show);
+        });
+}
+
+// Helper function to revert visibility changes
+function revertVisibilityChanges(show) {
+    console.log('Reverting visibility changes to:', { show });
+
     const matrixRows = document.querySelectorAll('.matrix-row');
     matrixRows.forEach(row => {
         if (row.getAttribute('data-task-status') === 'submitted') {
             row.style.display = show ? '' : 'none';
-            // Reset cell backgrounds in the row
-            Array.from(row.children).forEach(cell => {
-                cell.style.backgroundColor = show ? cell.style.backgroundColor : 'transparent';
-            });
         }
     });
 
-    // Then refresh the matrix to ensure proper highlighting
-    updateScheduleMatrixTasks().then(() => {
-        console.log("Matrix updated with new visibility settings");
-        scrollMatrixToWeekBeforeToday();
-    }).catch(error => {
-        console.error("Error updating matrix with new visibility settings:", error);
-    });
+    const hideSubmittedTasksToggle = document.getElementById('hideSubmittedTasks');
+    if (hideSubmittedTasksToggle) {
+        hideSubmittedTasksToggle.checked = show;
+    }
 }
 
 // Handle submitted tasks visibility toggle
 document.addEventListener('DOMContentLoaded', function () {
+    console.log('Setting up visibility toggle handler');
     const hideSubmittedTasksToggle = document.getElementById('hideSubmittedTasks');
 
     if (hideSubmittedTasksToggle) {
-        // Load saved preference from localStorage
-        const showSubmittedTasks = localStorage.getItem('showSubmittedTasks') !== 'false';
-        hideSubmittedTasksToggle.checked = showSubmittedTasks;
+        console.log('Found hideSubmittedTasks toggle element');
 
-        // Apply initial state
-        updateSubmittedTasksVisibility(showSubmittedTasks);
+        // Fetch preference from database
+        fetch('tasksHandler.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'action=getVisibilityPreference',
+            credentials: 'same-origin'
+        })
+            .then(response => {
+                console.log('Raw visibility preference response:', response);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(result => {
+                console.log('Initial visibility preference from server:', result);
+                if (result.status === 'success') {
+                    const showSubmittedTasks = !result.hide_submitted_tasks;
+                    console.log('Setting initial toggle state:', { showSubmittedTasks });
+                    hideSubmittedTasksToggle.checked = showSubmittedTasks;
+                    // Use skipServerUpdate=true when initializing from server data
+                    updateSubmittedTasksVisibility(showSubmittedTasks, true);
+                }
+            })
+            .catch(error => {
+                console.error("Error fetching visibility preference:", error);
+                // Fallback to localStorage if database fetch fails
+                const showSubmittedTasks = localStorage.getItem('showSubmittedTasks') !== 'false';
+                console.log('Falling back to localStorage value:', { showSubmittedTasks });
+                hideSubmittedTasksToggle.checked = showSubmittedTasks;
+                updateSubmittedTasksVisibility(showSubmittedTasks, true);
+            });
 
         // Handle toggle changes
-        hideSubmittedTasksToggle.addEventListener('change', function () {
-            const showTasks = this.checked;
-            updateSubmittedTasksVisibility(showTasks);
+        let isProcessingChange = false;
+        hideSubmittedTasksToggle.addEventListener('change', function (event) {
+            // Prevent multiple simultaneous changes
+            if (isProcessingChange) {
+                console.log('Already processing a change, ignoring');
+                return;
+            }
+
+            isProcessingChange = true;
+            const newState = this.checked;
+            console.log('Toggle changed, new checked state:', newState);
+
+            // Update visibility
+            updateSubmittedTasksVisibility(newState);
+
+            // Reset processing flag after a short delay
+            setTimeout(() => {
+                isProcessingChange = false;
+            }, 100);
         });
+    } else {
+        console.error('hideSubmittedTasks toggle element not found');
     }
 });
+
+// Function to update course list in tasks form
+function updateTaskFormCourseList() {
+    $.ajax({
+        url: 'tasksHandler.php',
+        type: 'POST',
+        dataType: 'json',
+        data: { action: 'getCourses' },
+        success: function (response) {
+            if (response.status === 'success') {
+                const courseSelect = $('#course_id');
+                courseSelect.empty();
+                courseSelect.append('<option value="">--Select Course--</option>');
+                response.courses.forEach(function (course) {
+                    courseSelect.append(`<option value="${course.id}">${course.name}</option>`);
+                });
+            }
+        }
+    });
+}
+
+// Function to get the last date from the matrix
+function getMatrixEndDate() {
+    // Get the start date from the hidden input
+    const startDate = document.getElementById('start_date')?.value;
+    if (!startDate) {
+        console.error('Start date not found');
+        return null;
+    }
+
+    // Calculate end date as 120 days from start date
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + 120);
+
+    console.log('Matrix end date calculation:', {
+        startDate: startDate,
+        endDate: endDate.toISOString().split('T')[0]
+    });
+
+    return endDate;
+}
+
+// Date validation functions
+function validateDates(fromDate, toDate, suggestedDate, actualStartDate, actualEndDate, startDate) {
+    const errors = [];
+    console.log('Validating dates:', {
+        fromDate,
+        toDate,
+        suggestedDate,
+        actualStartDate,
+        actualEndDate,
+        startDate
+    });
+
+    // Convert dates to Date objects and set to midnight for comparison
+    const from = fromDate ? new Date(fromDate + 'T00:00:00') : null;
+    const to = toDate ? new Date(toDate + 'T00:00:00') : null;
+    const suggested = suggestedDate ? new Date(suggestedDate + 'T00:00:00') : null;
+    const actualStart = actualStartDate ? new Date(actualStartDate + 'T00:00:00') : null;
+    const actualEnd = actualEndDate ? new Date(actualEndDate + 'T00:00:00') : null;
+    const start = startDate ? new Date(startDate + 'T00:00:00') : null;
+    const matrixEnd = getMatrixEndDate();
+
+    console.log('Converted dates:', {
+        from,
+        to,
+        suggested,
+        actualStart,
+        actualEnd,
+        start,
+        matrixEnd
+    });
+
+    // Required field validation
+    if (!fromDate) errors.push("From date is required");
+    if (!toDate) errors.push("To date is required");
+    if (!suggestedDate) errors.push("Suggested date is required");
+    if (!actualStartDate) errors.push("Actual start date is required");
+    if (!actualEndDate) errors.push("Actual end date is required");
+
+    // Only proceed with date range validation if we have the necessary dates
+    if (from && start) {
+        if (from < start) {
+            errors.push("From date cannot be earlier than the start date");
+        }
+    }
+
+    if (from && to) {
+        if (to < from) {
+            errors.push("To date cannot be earlier than from date");
+        }
+        if (matrixEnd && to > matrixEnd) {
+            console.log('To date validation failed:', {
+                to: to.toISOString(),
+                matrixEnd: matrixEnd.toISOString()
+            });
+            errors.push("To date cannot be later than the last date in the schedule matrix");
+        }
+    }
+
+    if (from && to && suggested) {
+        if (suggested < from || suggested > to) {
+            errors.push("Suggested date must be within the task period (between from and to dates)");
+        }
+    }
+
+    if (from && to && actualStart) {
+        if (actualStart < from || actualStart > to) {
+            errors.push("Actual start date must be within the task period");
+        }
+    }
+
+    if (from && to && actualEnd) {
+        if (actualEnd < from || actualEnd > to) {
+            errors.push("Actual end date must be within the task period");
+        }
+    }
+
+    if (actualStart && actualEnd) {
+        if (actualEnd < actualStart) {
+            errors.push("Actual end date cannot be earlier than actual start date");
+        }
+    }
+
+    return errors;
+}
+
+// Add event listeners for date fields to validate as user types
+function setupDateValidation() {
+    const dateFields = ['from_date', 'to_date', 'suggested_date', 'actual_start_date', 'actual_end_date'];
+    const startDate = $('#start_date').val();
+
+    // Clear previous validation state
+    clearAllErrors();
+
+    dateFields.forEach(field => {
+        $(`#${field}`).off('change').on('change', function () {
+            // Clear previous errors for this field
+            $(this).removeClass('invalid');
+            $(this).next('.error-message').remove();
+
+            const fromDate = $('#from_date').val();
+            const toDate = $('#to_date').val();
+            const suggestedDate = $('#suggested_date').val();
+            const actualStartDate = $('#actual_start_date').val();
+            const actualEndDate = $('#actual_end_date').val();
+
+            // Validate immediately when any date changes
+            const errors = validateDates(fromDate, toDate, suggestedDate, actualStartDate, actualEndDate, startDate);
+
+            // Show errors relevant to the current field
+            errors.forEach(error => {
+                const fieldName = field.replace('_', ' ');
+                if (error.toLowerCase().includes(fieldName.toLowerCase())) {
+                    showError($(`#${field}`), error);
+                }
+            });
+
+            // Special handling for related date validations
+            if (field === 'from_date' && startDate) {
+                const start = new Date(startDate + 'T00:00:00');
+                const from = new Date(fromDate + 'T00:00:00');
+                if (from < start) {
+                    showError($('#from_date'), "From date cannot be earlier than the start date");
+                }
+            }
+
+            if (field === 'to_date' && fromDate) {
+                const from = new Date(fromDate + 'T00:00:00');
+                const to = new Date(toDate + 'T00:00:00');
+                if (to < from) {
+                    showError($('#to_date'), "To date cannot be earlier than from date");
+                }
+            }
+        });
+    });
+}
+
+// Helper function to show validation errors
+function showError(element, message) {
+    // Remove any existing error message for this element
+    element.next('.error-message').remove();
+
+    // Add invalid class and error message
+    element.addClass('invalid');
+    const errorDiv = $('<div>').addClass('error-message').text(message);
+    element.after(errorDiv);
+}

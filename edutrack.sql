@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Mar 24, 2025 at 11:32 PM
+-- Generation Time: Apr 04, 2025 at 06:24 AM
 -- Server version: 10.4.28-MariaDB
 -- PHP Version: 8.2.4
 
@@ -96,7 +96,7 @@ CREATE TABLE `Holidays` (
   `title` varchar(255) NOT NULL,
   `from_date` date NOT NULL,
   `to_date` date NOT NULL,
-  `classes` int(11) DEFAULT 0
+  `courses` int(11) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -217,6 +217,24 @@ CREATE TABLE `Settings` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `UserPreferences`
+--
+
+CREATE TABLE `UserPreferences` (
+  `pref_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `first_name` varchar(50) NOT NULL,
+  `last_name` varchar(50) NOT NULL,
+  `student_id` varchar(20) NOT NULL,
+  `theme_preference` enum('light','dark') DEFAULT 'light',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `tasks_visibility` longtext DEFAULT NULL
+) ;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `Users`
 --
 
@@ -259,7 +277,8 @@ ALTER TABLE `Finals`
 --
 ALTER TABLE `Holidays`
   ADD PRIMARY KEY (`h_id`),
-  ADD KEY `start_date` (`start_date`);
+  ADD KEY `start_date` (`start_date`),
+  ADD KEY `holidays_settings_fk` (`user_id`,`start_date`);
 
 --
 -- Indexes for table `Logs`
@@ -298,7 +317,14 @@ ALTER TABLE `Reminders`
 --
 ALTER TABLE `Settings`
   ADD PRIMARY KEY (`d_id`),
-  ADD UNIQUE KEY `date` (`date`);
+  ADD UNIQUE KEY `user_date_unique` (`user_id`,`date`);
+
+--
+-- Indexes for table `UserPreferences`
+--
+ALTER TABLE `UserPreferences`
+  ADD PRIMARY KEY (`pref_id`),
+  ADD UNIQUE KEY `user_id` (`user_id`);
 
 --
 -- Indexes for table `Users`
@@ -373,6 +399,12 @@ ALTER TABLE `Settings`
   MODIFY `d_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `UserPreferences`
+--
+ALTER TABLE `UserPreferences`
+  MODIFY `pref_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `Users`
 --
 ALTER TABLE `Users`
@@ -386,13 +418,19 @@ ALTER TABLE `Users`
 -- Constraints for table `Holidays`
 --
 ALTER TABLE `Holidays`
-  ADD CONSTRAINT `holidays_ibfk_1` FOREIGN KEY (`start_date`) REFERENCES `Settings` (`date`) ON DELETE CASCADE;
+  ADD CONSTRAINT `holidays_settings_fk` FOREIGN KEY (`user_id`,`start_date`) REFERENCES `Settings` (`user_id`, `date`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `Reminders`
 --
 ALTER TABLE `Reminders`
   ADD CONSTRAINT `reminders_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `Users` (`u_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `UserPreferences`
+--
+ALTER TABLE `UserPreferences`
+  ADD CONSTRAINT `userpreferences_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `Users` (`u_id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

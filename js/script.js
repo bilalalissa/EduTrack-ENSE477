@@ -8,37 +8,222 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
-// Handle signup form submission
+// Handle signup form validation and submission
 document.addEventListener('DOMContentLoaded', function () {
     const signupSubmit = document.getElementById('signupSubmit');
     const signupForm = document.querySelector('.form-container');
+    const inputs = {
+        username: document.getElementById('username'),
+        email: document.getElementById('email'),
+        password: document.getElementById('password'),
+        confirmPassword: document.getElementById('confirmPassword'),
+        firstName: document.getElementById('firstName'),
+        lastName: document.getElementById('lastName'),
+        studentId: document.getElementById('studentId')
+    };
+
+    // Validation rules with improved messages
+    const validationRules = {
+        username: {
+            regex: /^[a-zA-Z0-9_]{4,20}$/,
+            message: 'Username must be 4-20 characters long and can only contain letters, numbers, and underscores',
+            successMessage: 'Username is available'
+        },
+        email: {
+            regex: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+            message: 'Please enter a valid email address',
+            successMessage: 'Email format is valid'
+        },
+        password: {
+            regex: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+            message: 'Password must contain:\n• At least 8 characters\n• One uppercase letter\n• One lowercase letter\n• One number\n• One special character (@$!%*?&)',
+            successMessage: 'Password meets requirements'
+        },
+        firstName: {
+            regex: /^[a-zA-Z\s]{2,50}$/,
+            message: 'First name must be 2-50 characters long and can only contain letters',
+            successMessage: 'First name is valid'
+        },
+        lastName: {
+            regex: /^[a-zA-Z\s]{2,50}$/,
+            message: 'Last name must be 2-50 characters long and can only contain letters',
+            successMessage: 'Last name is valid'
+        },
+        studentId: {
+            regex: /^[0-9]{7,10}$/,
+            message: 'Student ID must be 7-10 digits',
+            successMessage: 'Student ID format is valid'
+        }
+    };
+
+    // Function to show validation message with animation
+    function showValidationMessage(inputElement, message, type) {
+        const validationElement = document.getElementById(inputElement.id + 'Validation');
+        if (validationElement) {
+            validationElement.textContent = message;
+            validationElement.className = `validation-message ${type} visible`;
+
+            // Add appropriate class to the input element
+            if (type === 'success') {
+                inputElement.className = 'valid';
+            } else if (type === 'error') {
+                inputElement.className = 'invalid';
+            } else if (type === 'warning') {
+                inputElement.className = 'warning';
+            }
+        }
+    }
+
+    // Function to hide validation message
+    function hideValidationMessage(inputElement) {
+        const validationElement = document.getElementById(inputElement.id + 'Validation');
+        if (validationElement) {
+            validationElement.className = 'validation-message';
+            validationElement.textContent = '';
+            inputElement.className = '';
+        }
+    }
+
+    // Function to validate input with debounce
+    const debounce = (func, wait) => {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    };
+
+    // Function to validate input
+    function validateInput(inputElement, rule) {
+        const value = inputElement.value.trim();
+
+        if (value === '') {
+            hideValidationMessage(inputElement);
+            return false;
+        }
+
+        if (rule && !rule.regex.test(value)) {
+            showValidationMessage(inputElement, rule.message, 'error');
+            return false;
+        }
+
+        showValidationMessage(inputElement, rule.successMessage, 'success');
+        return true;
+    }
+
+    // Function to validate confirm password
+    function validateConfirmPassword() {
+        const password = inputs.password.value;
+        const confirmPassword = inputs.confirmPassword.value;
+
+        if (confirmPassword === '') {
+            hideValidationMessage(inputs.confirmPassword);
+            return false;
+        }
+
+        if (password !== confirmPassword) {
+            showValidationMessage(inputs.confirmPassword, 'Passwords do not match', 'error');
+            return false;
+        }
+
+        showValidationMessage(inputs.confirmPassword, 'Passwords match!', 'success');
+        return true;
+    }
+
+    // Add input event listeners for real-time validation with debounce
+    Object.keys(inputs).forEach(key => {
+        const input = inputs[key];
+        if (!input) return;
+
+        // Real-time validation with debounce
+        const debouncedValidation = debounce(() => {
+            if (key === 'confirmPassword') {
+                validateConfirmPassword();
+            } else {
+                validateInput(input, validationRules[key]);
+            }
+        }, 300);
+
+        input.addEventListener('input', debouncedValidation);
+
+        // Add focus out event for immediate validation
+        input.addEventListener('blur', function () {
+            if (key === 'confirmPassword') {
+                validateConfirmPassword();
+            } else {
+                validateInput(input, validationRules[key]);
+            }
+        });
+
+        // Add keypress event for Enter key to move to next field
+        input.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const currentIndex = Object.keys(inputs).indexOf(key);
+                const nextInput = inputs[Object.keys(inputs)[currentIndex + 1]];
+                if (nextInput) {
+                    nextInput.focus();
+                } else {
+                    signupSubmit.click(); // Submit if it's the last field
+                }
+            }
+        });
+
+        // Add focus event to show validation message if exists
+        input.addEventListener('focus', function () {
+            const validationElement = document.getElementById(input.id + 'Validation');
+            if (validationElement && validationElement.textContent) {
+                validationElement.classList.add('visible');
+            }
+        });
+    });
+
+    // Add event listeners for new fields
+    inputs.firstName.addEventListener('input', debounce(() => validateField('firstName'), 500));
+    inputs.lastName.addEventListener('input', debounce(() => validateField('lastName'), 500));
+    inputs.studentId.addEventListener('input', debounce(() => validateField('studentId'), 500));
 
     if (signupSubmit && signupForm) {
-        signupSubmit.addEventListener('click', function (e) {
+        signupForm.addEventListener('submit', function (e) {
             e.preventDefault();
 
-            // Get form data
-            const username = document.getElementById('username').value;
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
+            // Validate all fields
+            let isValid = true;
+            Object.keys(inputs).forEach(key => {
+                if (key === 'confirmPassword') {
+                    isValid = validateConfirmPassword() && isValid;
+                } else {
+                    isValid = validateInput(inputs[key], validationRules[key]) && isValid;
+                }
+            });
 
-            // Basic validation
-            if (!username || !email || !password || !confirmPassword) {
-                alert('Please fill in all required fields');
+            if (!isValid) {
+                // Focus the first invalid input
+                const firstInvalid = Object.values(inputs).find(input =>
+                    input.className === 'error' || input.className === 'warning'
+                );
+                if (firstInvalid) {
+                    firstInvalid.focus();
+                }
                 return;
             }
 
-            if (password !== confirmPassword) {
-                alert('Passwords do not match');
-                return;
-            }
+            // Show loading state
+            signupSubmit.disabled = true;
+            signupSubmit.textContent = 'Signing up...';
 
             // Prepare data for submission
             const data = {
-                username: username,
-                email: email,
-                password: password
+                username: inputs.username.value,
+                email: inputs.email.value,
+                password: inputs.password.value,
+                firstName: inputs.firstName.value,
+                lastName: inputs.lastName.value,
+                studentId: inputs.studentId.value
             };
 
             // Send request
@@ -52,7 +237,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(response => response.json())
                 .then(result => {
                     if (result.message === 'User with this username or email already exists.') {
-                        alert(result.message);
+                        showValidationMessage(inputs.username, result.message, 'error');
+                        signupSubmit.disabled = false;
+                        signupSubmit.textContent = 'Sign-up';
                     } else {
                         // Successful signup will redirect to home.php
                         window.location.href = 'home.php';
@@ -60,7 +247,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('An error occurred during signup. Please try again.');
+                    showValidationMessage(inputs.username, 'An error occurred during signup. Please try again.', 'error');
+                    signupSubmit.disabled = false;
+                    signupSubmit.textContent = 'Sign-up';
                 });
         });
     }
@@ -188,4 +377,83 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 });
+
+// Update validateForm function
+function validateForm() {
+    let isValid = true;
+
+    // Validate all fields
+    for (const field in inputs) {
+        if (!validateField(field)) {
+            isValid = false;
+        }
+    }
+
+    // Additional password match validation
+    if (inputs.password.value !== inputs.confirmPassword.value) {
+        showValidationMessage(inputs.confirmPassword, 'Passwords do not match', 'error');
+        isValid = false;
+    }
+
+    return isValid;
+}
+
+// Update validateField function
+function validateField(field) {
+    const input = inputs[field];
+    const value = input.value.trim();
+    const rule = validationRules[field];
+
+    // Skip validation for confirmPassword as it's handled separately
+    if (field === 'confirmPassword') return true;
+
+    if (!value) {
+        showValidationMessage(input, `${field.charAt(0).toUpperCase() + field.slice(1)} is required`, 'error');
+        return false;
+    }
+
+    if (!rule.regex.test(value)) {
+        showValidationMessage(input, rule.message, 'error');
+        return false;
+    }
+
+    showValidationMessage(input, rule.successMessage, 'success');
+    return true;
+}
+
+// Add event listener for hideSubmittedTasks checkbox
+/*
+document.addEventListener('DOMContentLoaded', function () {
+    const hideSubmittedTasksCheckbox = document.getElementById('hideSubmittedTasks');
+    if (hideSubmittedTasksCheckbox) {
+        hideSubmittedTasksCheckbox.addEventListener('change', function () {
+            // Create form data
+            const formData = new FormData();
+            formData.append('action', 'updateVisibility');
+            formData.append('hideSubmitted', this.checked ? '1' : '0');
+
+            // Send request to update the database
+            fetch('tasksHandler.php', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.status === 'success') {
+                        console.log('Visibility setting updated successfully');
+                        // Refresh the task list or update the UI as needed
+                        if (typeof updateTaskList === 'function') {
+                            updateTaskList();
+                        }
+                    } else {
+                        console.error('Failed to update visibility setting:', result.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating visibility setting:', error);
+                });
+        });
+    }
+});
+*/
 

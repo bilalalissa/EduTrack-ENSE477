@@ -5,12 +5,12 @@ require_once("db.php");
 header('Content-Type: application/json');
 
 // Verify user is logged in
-if (!isset($_SESSION['loggedinID'])) {
+if (!isset($_SESSION['signupUserId'])) {
     echo json_encode(["status" => "error", "message" => "User not logged in."]);
     exit;
 }
 
-$user_id = $_SESSION['loggedinID'];
+$user_id = $_SESSION['signupUserId'];
 $action = $_GET['action'] ?? '';
 
 if ($action === 'getTodos') {

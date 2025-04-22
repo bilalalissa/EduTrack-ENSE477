@@ -138,7 +138,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     $_SESSION['username'] = $result['username'];
                     $_SESSION['signupSuccess'] = false;
                     $_SESSION['loggedinUsername'] = $username;
-                    $_SESSION['loggedinID'] = $user_id;
+                    $_SESSION['signupUserId'] = $user_id;
 
                     // On successful login
                     // Update last_login and status in Users table
@@ -266,8 +266,8 @@ if (!isset($_SESSION['username'])) {
                         <input type="password" id="password" name="password" required placeholder="Password">
                     </div>
                     <div class="form-footer">
-                        <button type="button" id="signupButton">Sign-up</button>
-                        <button type="submit" id="loginButton">Login</button>
+                    <button type="submit" id="loginButton">Login</button>
+                    <button type="button" id="signupButton">Sign-up</button>
                     </div>
                 </form>
             </div>
