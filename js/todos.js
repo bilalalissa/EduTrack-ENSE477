@@ -683,15 +683,27 @@ function refreshTodos() {
     fetchTodos();
 }
 
+// Function to schedule the next refresh at midnight, every 24 hours
+function scheduleNextMidnightRefresh() {
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+
+    const timeUntilMidnight = tomorrow - now;
+    setTimeout(() => {
+        refreshTodos();
+        scheduleNextMidnightRefresh(); // Schedule next day's refresh
+    }, timeUntilMidnight);
+}
+
 // Initial load of todos
 document.addEventListener('DOMContentLoaded', () => {
     fetchTodos();
+    scheduleNextMidnightRefresh(); // Schedule first midnight refresh
 });
 
 // Refresh todos when tasks are modified
 document.addEventListener('tasksUpdated', () => {
     refreshTodos();
-});
-
-// Refresh todos every 5 minutes
-setInterval(refreshTodos, 5 * 60 * 1000); 
+}); 
