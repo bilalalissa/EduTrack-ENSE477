@@ -42,9 +42,7 @@ function updateTodoSection(section, tasks, title) {
     if (tasks.length === 0) {
         const noTasks = document.createElement('p');
         noTasks.textContent = 'No tasks scheduled.';
-        noTasks.style.color = '#888';
-        noTasks.style.textAlign = 'center';
-        noTasks.style.padding = '10px';
+        noTasks.className = 'no-tasks';
         section.appendChild(noTasks);
     } else {
         const tasksList = document.createElement('ul');
@@ -99,7 +97,7 @@ function updateTodoSection(section, tasks, title) {
                     </div>
                     <div class="todo-right">
                         ${reason ? `<span class="todo-reason">${reason}</span>` : ''}
-                        <button class="todo-expand-btn">
+                        <button class="todo-expand-btn" aria-label="Toggle task details">
                             <svg width="12" height="12" viewBox="0 0 16 16">
                                 <path fill="currentColor" d="M8 12L2 6h12z"/>
                             </svg>
@@ -139,18 +137,10 @@ function updateTodoSection(section, tasks, title) {
         section.appendChild(tasksList);
     }
 
-    // Update click handler for export button
+    // Add export button back
     if (sectionExportBtn) {
-        sectionExportBtn.addEventListener('click', () => {
-            if (tasks.length === 0) {
-                alert('No tasks to export!');
-                return;
-            }
-            addToCalendar(tasks, title);
-        });
+        section.appendChild(sectionExportBtn);
     }
-
-    section.appendChild(sectionExportBtn);
 }
 
 // Function to generate iCalendar file content

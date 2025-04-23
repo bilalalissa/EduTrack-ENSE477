@@ -2,6 +2,9 @@
 session_start();
 require_once("db.php");
 
+// Set timezone to UTC for consistent date handling
+date_default_timezone_set('UTC');
+
 header('Content-Type: application/json');
 
 // Verify user is logged in
@@ -15,9 +18,17 @@ $action = $_GET['action'] ?? '';
 
 if ($action === 'getTodos') {
     try {
-        $today = date('Y-m-d');
-        $tomorrow = date('Y-m-d', strtotime('+1 day'));
-        $week_end = date('Y-m-d', strtotime('+7 days'));
+        // Get current date in UTC
+        $now = new DateTime('now', new DateTimeZone('UTC'));
+        $today = $now->format('Y-m-d');
+
+        $tomorrow = (new DateTime('now', new DateTimeZone('UTC')))
+            ->modify('+1 day')
+            ->format('Y-m-d');
+
+        $week_end = (new DateTime('now', new DateTimeZone('UTC')))
+            ->modify('+7 days')
+            ->format('Y-m-d');
 
         $todos = [
             'today' => [],

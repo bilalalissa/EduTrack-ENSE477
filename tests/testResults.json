@@ -294,6 +294,428 @@
             "status": "Failed",
             "timeElapsed": "0.112 seconds",
             "timestamp": "2025-04-02T19:18:37.062Z"
+        },
+        {
+            "taskId": 1,
+            "name": "Test Signup",
+            "type": "Functional",
+            "inputs": "username, email, password",
+            "outputs": "User created successfully",
+            "status": "Failed",
+            "timeElapsed": "0.033 seconds",
+            "timestamp": "2025-04-23T04:15:05.650Z"
+        },
+        {
+            "taskId": 2,
+            "name": "Test Login",
+            "type": "Functional",
+            "inputs": "username, password",
+            "outputs": "User logged in successfully",
+            "status": "Passed",
+            "timeElapsed": "0 seconds",
+            "timestamp": "2025-04-23T04:15:33.698Z"
+        },
+        {
+            "taskId": 3,
+            "name": "Test Add Task",
+            "type": "Functional",
+            "inputs": "task details",
+            "outputs": "Task added successfully",
+            "status": "Passed",
+            "timeElapsed": "0 seconds",
+            "timestamp": "2025-04-23T04:15:37.208Z"
+        },
+        {
+            "taskId": 6,
+            "name": "Test Load Courses",
+            "type": "Functional",
+            "inputs": "none",
+            "outputs": "Courses loaded successfully",
+            "status": "Passed",
+            "timeElapsed": "0 seconds",
+            "timestamp": "2025-04-23T04:18:00.375Z"
+        },
+        {
+            "taskId": 5,
+            "name": "Test Edit Task",
+            "type": "Functional",
+            "inputs": "task id, new details",
+            "outputs": "Task edited successfully",
+            "status": "Passed",
+            "timeElapsed": "0 seconds",
+            "timestamp": "2025-04-23T04:18:13.186Z"
+        },
+        {
+            "taskId": 7,
+            "name": "Test Fetch Start Date",
+            "type": "Functional",
+            "inputs": "none",
+            "outputs": "Start date fetched successfully",
+            "status": "Passed",
+            "timeElapsed": "0.001 seconds",
+            "timestamp": "2025-04-23T05:03:52.486Z"
+        },
+        {
+            "taskId": 8,
+            "name": "Test Slide In\/Out Animation",
+            "type": "UI",
+            "inputs": "none",
+            "outputs": "Animation performed successfully",
+            "status": "Passed",
+            "timeElapsed": "0 seconds",
+            "timestamp": "2025-04-23T05:04:05.895Z"
+        },
+        {
+            "taskId": 9,
+            "name": "Test Highlight Task Rows",
+            "type": "UI",
+            "inputs": "none",
+            "outputs": "Task rows highlighted successfully",
+            "status": "Passed",
+            "timeElapsed": "0 seconds",
+            "timestamp": "2025-04-23T05:04:10.151Z"
+        },
+        {
+            "taskId": 10,
+            "name": "Test Initial Todo Load",
+            "type": "Functional",
+            "inputs": "Page load event",
+            "outputs": "Todos loaded successfully",
+            "status": "Failed",
+            "timeElapsed": "0 seconds",
+            "timestamp": "2025-04-23T05:12:43.844Z"
+        },
+        {
+            "taskId": 11,
+            "name": "Test Task Update Refresh",
+            "type": "Functional",
+            "inputs": "Task update event",
+            "outputs": "Todos refreshed after task update",
+            "status": "Passed",
+            "timeElapsed": "1.002 seconds",
+            "timestamp": "2025-04-23T05:12:48.801Z"
+        },
+        {
+            "taskId": 12,
+            "name": "Test Midnight Refresh Scheduling",
+            "type": "Functional",
+            "inputs": "Current time",
+            "outputs": "Next refresh scheduled correctly",
+            "status": "Failed",
+            "timeElapsed": "0.001 seconds",
+            "timestamp": "2025-04-23T05:12:51.370Z"
+        },
+        {
+            "taskId": 13,
+            "name": "Test Refresh Function Execution",
+            "type": "Functional",
+            "inputs": "Refresh trigger",
+            "outputs": "Fetch request made successfully",
+            "status": "Passed",
+            "timeElapsed": "0 seconds",
+            "timestamp": "2025-04-23T05:12:54.328Z"
+        },
+        {
+            "taskId": 10,
+            "name": "Test Initial Todo Load",
+            "type": "Functional",
+            "description": "No description provided",
+            "inputs": "Page load event",
+            "outputs": "Todos loaded successfully",
+            "status": "Failed",
+            "timeElapsed": "0.001 seconds",
+            "timestamp": "2025-04-23T05:29:37.255Z",
+            "executionDetails": {
+                "startTime": "2025-04-23T05:29:37.254Z",
+                "endTime": "2025-04-23T05:29:37.255Z",
+                "duration": 0.001000000000000000020816681711721685132943093776702880859375,
+                "logs": [],
+                "errors": [
+                    {
+                        "type": "error",
+                        "timestamp": "2025-04-23T05:29:37.255Z",
+                        "message": "Error in initial todo load test: {\"message\":\"Failed to execute 'observe' on 'MutationObserver': parameter 1 is not of type 'Node'.\"}"
+                    }
+                ],
+                "error": null,
+                "environment": {
+                    "userAgent": "Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/135.0.0.0 Safari\/537.36",
+                    "platform": "MacIntel",
+                    "language": "en",
+                    "screenResolution": "1800x1169"
+                }
+            },
+            "testCode": "async function () {\n                try {\n                    \/\/ Create a promise that resolves when todos are loaded\n                    const todoLoadPromise = new Promise((resolve) => {\n                        const observer = new MutationObserver((mutations) => {\n                            const todosLoaded = mutations.some(mutation =>\n                                mutation.target.classList.contains('todos-list') ||\n                                mutation.target.querySelector('.todo-item')\n                            );\n                            if (todosLoaded) {\n                                observer.disconnect();\n                                resolve(true);\n                            }\n                        });\n\n                        observer.observe(document.querySelector('.todos-section'), {\n                            childList: true,\n                            subtree: true\n                        });\n                    });\n\n                    \/\/ Wait for todos to load (with timeout)\n                    const result = await Promise.race([\n                        todoLoadPromise,\n                        new Promise(resolve => setTimeout(() => resolve(false), 5000))\n                    ]);\n\n                    return result;\n                } catch (error) {\n                    console.error('Error in initial todo load test:', error);\n                    return false;\n                }\n            }"
+        },
+        {
+            "taskId": 11,
+            "name": "Test Task Update Refresh",
+            "type": "Functional",
+            "description": "No description provided",
+            "inputs": "Task update event",
+            "outputs": "Todos refreshed after task update",
+            "status": "Passed",
+            "timeElapsed": "1.003 seconds",
+            "timestamp": "2025-04-23T05:39:15.772Z",
+            "executionDetails": {
+                "startTime": "2025-04-23T05:39:14.769Z",
+                "endTime": "2025-04-23T05:39:15.772Z",
+                "duration": 1.0029999999999998916422327965847216546535491943359375,
+                "logs": [],
+                "errors": [
+                    {
+                        "type": "error",
+                        "timestamp": "2025-04-23T05:39:14.777Z",
+                        "message": "Error fetching todos: {}"
+                    }
+                ],
+                "error": null,
+                "environment": {
+                    "userAgent": "Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/135.0.0.0 Safari\/537.36",
+                    "platform": "MacIntel",
+                    "language": "en",
+                    "screenResolution": "1800x1169"
+                }
+            },
+            "testCode": "async function () {\n                try {\n                    \/\/ Create a flag to track if refresh was called\n                    let refreshCalled = false;\n                    const originalRefresh = window.refreshTodos;\n\n                    \/\/ Override refreshTodos temporarily\n                    window.refreshTodos = () => {\n                        refreshCalled = true;\n                        originalRefresh();\n                    };\n\n                    \/\/ Dispatch tasksUpdated event\n                    document.dispatchEvent(new Event('tasksUpdated'));\n\n                    \/\/ Wait a bit to ensure the event was processed\n                    await new Promise(resolve => setTimeout(resolve, 1000));\n\n                    \/\/ Restore original refresh function\n                    window.refreshTodos = originalRefresh;\n\n                    return refreshCalled;\n                } catch (error) {\n                    console.error('Error in task update refresh test:', error);\n                    return false;\n                }\n            }"
+        },
+        {
+            "taskId": 12,
+            "name": "Test Midnight Refresh Scheduling",
+            "type": "Functional",
+            "description": "No description provided",
+            "inputs": "Current time",
+            "outputs": "Next refresh scheduled correctly",
+            "status": "Failed",
+            "timeElapsed": "0.001 seconds",
+            "timestamp": "2025-04-23T05:41:23.953Z",
+            "executionDetails": {
+                "startTime": "2025-04-23T05:41:23.952Z",
+                "endTime": "2025-04-23T05:41:23.953Z",
+                "duration": 0.001000000000000000020816681711721685132943093776702880859375,
+                "logs": [],
+                "errors": [
+                    {
+                        "type": "error",
+                        "timestamp": "2025-04-23T05:41:23.952Z",
+                        "message": "Error in midnight refresh scheduling test: {}"
+                    }
+                ],
+                "error": null,
+                "environment": {
+                    "userAgent": "Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/135.0.0.0 Safari\/537.36",
+                    "platform": "MacIntel",
+                    "language": "en",
+                    "screenResolution": "1800x1169"
+                }
+            },
+            "testCode": "async function () {\n                try {\n                    \/\/ Mock Date to test midnight scheduling\n                    const originalDate = global.Date;\n                    const mockNow = new Date('2025-04-01T23:00:00'); \/\/ 11 PM\n                    global.Date = class extends Date {\n                        constructor() {\n                            return mockNow;\n                        }\n                        static now() {\n                            return mockNow.getTime();\n                        }\n                    };\n\n                    \/\/ Reset any existing timeouts\n                    const originalSetTimeout = window.setTimeout;\n                    let timeoutDuration;\n                    window.setTimeout = (callback, duration) => {\n                        timeoutDuration = duration;\n                        return originalSetTimeout(callback, 100); \/\/ Shorten for testing\n                    };\n\n                    \/\/ Call the scheduling function\n                    scheduleNextMidnightRefresh();\n\n                    \/\/ Restore original functions\n                    global.Date = originalDate;\n                    window.setTimeout = originalSetTimeout;\n\n                    \/\/ Expected duration should be 1 hour (in milliseconds)\n                    const expectedDuration = 1 * 60 * 60 * 1000;\n                    const isCorrectDuration = Math.abs(timeoutDuration - expectedDuration) < 1000; \/\/ Allow 1 second margin\n\n                    return isCorrectDuration;\n                } catch (error) {\n                    console.error('Error in midnight refresh scheduling test:', error);\n                    return false;\n                }\n            }"
+        },
+        {
+            "taskId": 10,
+            "name": "Test Initial Todo Load",
+            "type": "Functional",
+            "description": "No description provided",
+            "inputs": "Page load event",
+            "outputs": "Todos loaded successfully",
+            "status": "Failed",
+            "timeElapsed": "0 seconds",
+            "timestamp": "2025-04-23T05:45:57.397Z",
+            "executionDetails": {
+                "startTime": "2025-04-23T05:45:57.397Z",
+                "endTime": "2025-04-23T05:45:57.397Z",
+                "duration": 0,
+                "logs": [],
+                "errors": [
+                    {
+                        "type": "error",
+                        "timestamp": "2025-04-23T05:45:57.397Z",
+                        "message": "Error in initial todo load test: {\"message\":\"Failed to execute 'observe' on 'MutationObserver': parameter 1 is not of type 'Node'.\"}"
+                    }
+                ],
+                "error": null,
+                "environment": {
+                    "userAgent": "Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/135.0.0.0 Safari\/537.36",
+                    "platform": "MacIntel",
+                    "language": "en",
+                    "screenResolution": "1800x1169"
+                }
+            },
+            "testCode": "async function () {\n                try {\n                    \/\/ Create a promise that resolves when todos are loaded\n                    const todoLoadPromise = new Promise((resolve) => {\n                        const observer = new MutationObserver((mutations) => {\n                            const todosLoaded = mutations.some(mutation =>\n                                mutation.target.classList.contains('todos-list') ||\n                                mutation.target.querySelector('.todo-item')\n                            );\n                            if (todosLoaded) {\n                                observer.disconnect();\n                                resolve(true);\n                            }\n                        });\n\n                        observer.observe(document.querySelector('.todos-section'), {\n                            childList: true,\n                            subtree: true\n                        });\n                    });\n\n                    \/\/ Wait for todos to load (with timeout)\n                    const result = await Promise.race([\n                        todoLoadPromise,\n                        new Promise(resolve => setTimeout(() => resolve(false), 5000))\n                    ]);\n\n                    return result;\n                } catch (error) {\n                    console.error('Error in initial todo load test:', error);\n                    return false;\n                }\n            }"
+        },
+        {
+            "taskId": 11,
+            "name": "Test Task Update Refresh",
+            "type": "Functional",
+            "description": "No description provided",
+            "inputs": "Task update event",
+            "outputs": "Todos refreshed after task update",
+            "status": "Passed",
+            "timeElapsed": "1 seconds",
+            "timestamp": "2025-04-23T05:46:00.182Z",
+            "executionDetails": {
+                "startTime": "2025-04-23T05:45:59.182Z",
+                "endTime": "2025-04-23T05:46:00.182Z",
+                "duration": 1,
+                "logs": [],
+                "errors": [
+                    {
+                        "type": "error",
+                        "timestamp": "2025-04-23T05:45:59.195Z",
+                        "message": "Error fetching todos: {}"
+                    }
+                ],
+                "error": null,
+                "environment": {
+                    "userAgent": "Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/135.0.0.0 Safari\/537.36",
+                    "platform": "MacIntel",
+                    "language": "en",
+                    "screenResolution": "1800x1169"
+                }
+            },
+            "testCode": "async function () {\n                try {\n                    \/\/ Create a flag to track if refresh was called\n                    let refreshCalled = false;\n                    const originalRefresh = window.refreshTodos;\n\n                    \/\/ Override refreshTodos temporarily\n                    window.refreshTodos = () => {\n                        refreshCalled = true;\n                        originalRefresh();\n                    };\n\n                    \/\/ Dispatch tasksUpdated event\n                    document.dispatchEvent(new Event('tasksUpdated'));\n\n                    \/\/ Wait a bit to ensure the event was processed\n                    await new Promise(resolve => setTimeout(resolve, 1000));\n\n                    \/\/ Restore original refresh function\n                    window.refreshTodos = originalRefresh;\n\n                    return refreshCalled;\n                } catch (error) {\n                    console.error('Error in task update refresh test:', error);\n                    return false;\n                }\n            }"
+        },
+        {
+            "taskId": 12,
+            "name": "Test Midnight Refresh Scheduling",
+            "type": "Functional",
+            "description": "No description provided",
+            "inputs": "Current time",
+            "outputs": "Next refresh scheduled correctly",
+            "status": "Failed",
+            "timeElapsed": "0 seconds",
+            "timestamp": "2025-04-23T05:46:02.154Z",
+            "executionDetails": {
+                "startTime": "2025-04-23T05:46:02.154Z",
+                "endTime": "2025-04-23T05:46:02.154Z",
+                "duration": 0,
+                "logs": [],
+                "errors": [
+                    {
+                        "type": "error",
+                        "timestamp": "2025-04-23T05:46:02.154Z",
+                        "message": "Error in midnight refresh scheduling test: {}"
+                    }
+                ],
+                "error": null,
+                "environment": {
+                    "userAgent": "Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/135.0.0.0 Safari\/537.36",
+                    "platform": "MacIntel",
+                    "language": "en",
+                    "screenResolution": "1800x1169"
+                }
+            },
+            "testCode": "async function () {\n                try {\n                    \/\/ Mock Date to test midnight scheduling\n                    const originalDate = global.Date;\n                    const mockNow = new Date('2025-04-01T23:00:00'); \/\/ 11 PM\n                    global.Date = class extends Date {\n                        constructor() {\n                            return mockNow;\n                        }\n                        static now() {\n                            return mockNow.getTime();\n                        }\n                    };\n\n                    \/\/ Reset any existing timeouts\n                    const originalSetTimeout = window.setTimeout;\n                    let timeoutDuration;\n                    window.setTimeout = (callback, duration) => {\n                        timeoutDuration = duration;\n                        return originalSetTimeout(callback, 100); \/\/ Shorten for testing\n                    };\n\n                    \/\/ Call the scheduling function\n                    scheduleNextMidnightRefresh();\n\n                    \/\/ Restore original functions\n                    global.Date = originalDate;\n                    window.setTimeout = originalSetTimeout;\n\n                    \/\/ Expected duration should be 1 hour (in milliseconds)\n                    const expectedDuration = 1 * 60 * 60 * 1000;\n                    const isCorrectDuration = Math.abs(timeoutDuration - expectedDuration) < 1000; \/\/ Allow 1 second margin\n\n                    return isCorrectDuration;\n                } catch (error) {\n                    console.error('Error in midnight refresh scheduling test:', error);\n                    return false;\n                }\n            }"
+        },
+        {
+            "taskId": 13,
+            "name": "Test Refresh Function Execution",
+            "type": "Functional",
+            "description": "No description provided",
+            "inputs": "Refresh trigger",
+            "outputs": "Fetch request made successfully",
+            "status": "Passed",
+            "timeElapsed": "0 seconds",
+            "timestamp": "2025-04-23T05:46:05.008Z",
+            "executionDetails": {
+                "startTime": "2025-04-23T05:46:05.008Z",
+                "endTime": "2025-04-23T05:46:05.008Z",
+                "duration": 0,
+                "logs": [],
+                "errors": [],
+                "error": null,
+                "environment": {
+                    "userAgent": "Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/135.0.0.0 Safari\/537.36",
+                    "platform": "MacIntel",
+                    "language": "en",
+                    "screenResolution": "1800x1169"
+                }
+            },
+            "testCode": "async function () {\n                try {\n                    \/\/ Mock fetch to track if it's called\n                    const originalFetch = window.fetch;\n                    let fetchCalled = false;\n                    window.fetch = (url) => {\n                        if (url.includes('todosHandler.php?action=getTodos')) {\n                            fetchCalled = true;\n                        }\n                        return originalFetch(url);\n                    };\n\n                    \/\/ Call refresh\n                    await refreshTodos();\n\n                    \/\/ Restore original fetch\n                    window.fetch = originalFetch;\n\n                    return fetchCalled;\n                } catch (error) {\n                    console.error('Error in refresh execution test:', error);\n                    return false;\n                }\n            }"
+        },
+        {
+            "taskId": 2,
+            "name": "Test Login",
+            "type": "Functional",
+            "description": "No description provided",
+            "inputs": "username, password",
+            "outputs": "User logged in successfully",
+            "status": "Passed",
+            "timeElapsed": "0.001 seconds",
+            "timestamp": "2025-04-23T23:13:51.318Z",
+            "executionDetails": {
+                "startTime": "2025-04-23T23:13:51.317Z",
+                "endTime": "2025-04-23T23:13:51.318Z",
+                "duration": 0.001000000000000000020816681711721685132943093776702880859375,
+                "logs": [],
+                "errors": [],
+                "error": null,
+                "environment": {
+                    "userAgent": "Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/135.0.0.0 Safari\/537.36",
+                    "platform": "MacIntel",
+                    "language": "en",
+                    "screenResolution": "1800x1169"
+                }
+            },
+            "testCode": "function () {\n                \/\/ Simulate login process\n                return true; \/\/ Simulate a passing test\n            }"
+        },
+        {
+            "taskId": 1,
+            "name": "Test Signup",
+            "type": "Functional",
+            "description": "No description provided",
+            "inputs": "username, email, password",
+            "outputs": "User created successfully",
+            "status": "Failed",
+            "timeElapsed": "0.029 seconds",
+            "timestamp": "2025-04-23T23:16:43.038Z",
+            "executionDetails": {
+                "startTime": "2025-04-23T23:16:43.009Z",
+                "endTime": "2025-04-23T23:16:43.038Z",
+                "duration": 0.0290000000000000014710455076283324160613119602203369140625,
+                "logs": [
+                    {
+                        "type": "log",
+                        "timestamp": "2025-04-23T23:16:43.038Z",
+                        "message": "Sending signup request with data: {\"username\":\"testuser_1745450203009\",\"email\":\"testuser_1745450203009@example.com\",\"password\":\"securepassword123\"}"
+                    },
+                    {
+                        "type": "log",
+                        "timestamp": "2025-04-23T23:16:43.038Z",
+                        "message": "Response status: 200"
+                    },
+                    {
+                        "type": "log",
+                        "timestamp": "2025-04-23T23:16:43.038Z",
+                        "message": "Response headers: {}"
+                    },
+                    {
+                        "type": "log",
+                        "timestamp": "2025-04-23T23:16:43.038Z",
+                        "message": "Raw response text: {\"status\":\"error\",\"message\":\"Username must be 4-20 characters long and can only contain letters, numbers, and underscores.\"}"
+                    },
+                    {
+                        "type": "log",
+                        "timestamp": "2025-04-23T23:16:43.038Z",
+                        "message": "Parsed response data: {\"status\":\"error\",\"message\":\"Username must be 4-20 characters long and can only contain letters, numbers, and underscores.\"}"
+                    }
+                ],
+                "errors": [
+                    {
+                        "type": "error",
+                        "timestamp": "2025-04-23T23:16:43.038Z",
+                        "message": "Unexpected response message: Username must be 4-20 characters long and can only contain letters, numbers, and underscores."
+                    }
+                ],
+                "error": null,
+                "environment": {
+                    "userAgent": "Mozilla\/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/135.0.0.0 Safari\/537.36",
+                    "platform": "MacIntel",
+                    "language": "en",
+                    "screenResolution": "1800x1169"
+                }
+            },
+            "testCode": "async function () {\n                \/\/ Simulate user input with unique credentials\n                const userData = {\n                    username: 'testuser_' + Date.now(), \/\/ Ensure unique username\n                    email: 'testuser_' + Date.now() + '@example.com', \/\/ Ensure unique email\n                    password: 'securepassword123'\n                };\n\n                try {\n                    \/\/ Make a request to the signup endpoint\n                    const response = await fetch('..\/signup.php', {\n                        method: 'POST',\n                        headers: {\n                            'Content-Type': 'application\/json'\n                        },\n                        body: JSON.stringify(userData)\n                    });\n\n                    \/\/ Log the response status and headers\n                    console.log('Sending signup request with data:', userData);\n                    console.log('Response status:', response.status);\n                    console.log('Response headers:', response.headers);\n                    const responseText = await response.text();\n                    console.log('Raw response text:', responseText);\n                    let result;\n                    try {\n                        result = JSON.parse(responseText);\n                        console.log('Parsed response data:', result);\n                    } catch (parseError) {\n                        console.error('Error parsing response JSON:', parseError);\n                        return false;\n                    }\n                    \/\/ Verify the response\n                    if (result.message === 'User created successfully') {\n                        return true;\n                    } else {\n                        console.error('Unexpected response message:', result.message);\n                        return false;\n                    }\n                } catch (error) {\n                    console.error('Error during signup test:', error);\n                    return false;\n                }\n            }"
         }
     ]
 }
