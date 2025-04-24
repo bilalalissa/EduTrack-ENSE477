@@ -1,0 +1,61 @@
+.task-progress-container {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    overflow: visible;
+    z-index: 100;
+    pointer-events: none;
+}
+
+.task-progress-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background-color: rgba(255, 255, 255, 0.3);
+    overflow: hidden;
+    transition: all 0.3s ease-in-out;
+}
+
+.task-progress-fill {
+    height: 50%;
+    background-color: rgba(255, 255, 255, 0.8);
+    transition: all 0.3s ease-in-out;
+}
+
+/* Progress bar colors based on percentage */
+.progress-low {
+    background-color: rgba(255, 82, 82, 0.8);
+    /* Red for < 40% */
+}
+
+.progress-medium {
+    background-color: rgba(255, 235, 59, 0.8);
+    /* Yellow for 40-75% */
+}
+
+.progress-high {
+    background-color: rgba(76, 175, 80, 0.8);
+    /* Green for > 75% */
+}
+
+/* Task cell hover effect for progress bar */
+.task-cell:hover .task-progress-bar,
+.task-cell.hover-effect .task-progress-bar {
+    height: 13px;
+    bottom: -8px;
+    border-radius: 3px;
+}
+
+.task-cell:hover .task-progress-fill,
+.task-cell.hover-effect .task-progress-fill {
+    filter: brightness(1.2);
+}
+
+/* Add shadow effect on hover */
+.task-cell:hover .task-progress-bar,
+.task-cell.hover-effect .task-progress-bar {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}

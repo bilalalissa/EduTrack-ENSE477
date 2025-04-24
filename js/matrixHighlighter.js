@@ -291,6 +291,32 @@
       const row = matrixRows[(holidayOffset + index) % matrixRows.length];
       let taskPeriodCells = [];
 
+      // Create progress bar container that will span all cells
+      const progressContainer = document.createElement('div');
+      progressContainer.className = 'task-progress-container';
+
+      const progressBar = document.createElement('div');
+      progressBar.className = 'task-progress-bar';
+
+      const progressFill = document.createElement('div');
+      progressFill.className = 'task-progress-fill';
+
+      // Set progress bar width based on task percentage
+      const percent = parseInt(task.percent) || 0;
+      progressFill.style.width = `${percent}%`;
+
+      // Add color class based on percentage
+      if (percent >= 75) {
+        progressFill.classList.add('progress-high');
+      } else if (percent >= 40) {
+        progressFill.classList.add('progress-medium');
+      } else {
+        progressFill.classList.add('progress-low');
+      }
+
+      progressBar.appendChild(progressFill);
+      progressContainer.appendChild(progressBar);
+
       for (let col = fromCol; col <= toCol; col++) {
         const cell = row.children[col];
         taskPeriodCells.push(cell);
@@ -322,6 +348,7 @@
         cell.setAttribute('data-task-type', taskType);
         cell.setAttribute('data-task-title', task.title);
         cell.setAttribute('data-status', task.status);
+        cell.setAttribute('data-percent', task.percent);
         row.setAttribute('data-task-status', task.status);
 
         // Set background color based on task type
@@ -496,62 +523,27 @@
 
         // Add hover effects using event delegation
         const handleMouseEnter = () => {
-          taskPeriodCells.forEach((taskCell, idx) => {
+          taskPeriodCells.forEach(taskCell => {
+            taskCell.classList.add('hover-effect');
             taskCell.style.backgroundColor = bgColor.replace('0.8)', '1)');
             taskCell.style.borderTop = "2px solid rgba(255, 255, 255, 0.8)";
             taskCell.style.borderBottom = "2px solid rgba(255, 255, 255, 0.8)";
             taskCell.style.transform = "translateY(-1px)";
             taskCell.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.2)";
             taskCell.style.filter = "brightness(1.1)";
-
-            // Maintain border radius on hover
-            if (idx === 0) {
-              taskCell.style.borderTopLeftRadius = '3px';
-              taskCell.style.borderBottomLeftRadius = '3px';
-            } else if (idx === taskPeriodCells.length - 1) {
-              taskCell.style.borderTopRightRadius = '3px';
-              taskCell.style.borderBottomRightRadius = '3px';
-            }
-          });
-          taskPeriodCells[0].style.borderLeft = "2px solid rgba(255, 255, 255, 0.8)";
-          taskPeriodCells[taskPeriodCells.length - 1].style.borderRight = "2px solid rgba(255, 255, 255, 0.8)";
-
-          // Add glow effect
-          taskPeriodCells.forEach((taskCell, idx) => {
-            if (idx === 0) {
-              taskCell.style.boxShadow = "0 4px 8px rgba(255, 255, 255, 0.2), -2px 0 4px rgba(255, 255, 255, 0.1)";
-            } else if (idx === taskPeriodCells.length - 1) {
-              taskCell.style.boxShadow = "0 4px 8px rgba(255, 255, 255, 0.2), 2px 0 4px rgba(255, 255, 255, 0.1)";
-            } else {
-              taskCell.style.boxShadow = "0 4px 8px rgba(255, 255, 255, 0.2)";
-            }
           });
         };
 
         const handleMouseLeave = () => {
-          taskPeriodCells.forEach((taskCell, idx) => {
+          taskPeriodCells.forEach(taskCell => {
+            taskCell.classList.remove('hover-effect');
             taskCell.style.backgroundColor = bgColor;
             taskCell.style.borderTop = "1px solid rgba(255, 255, 255, 0.1)";
             taskCell.style.borderBottom = "1px solid rgba(255, 255, 255, 0.1)";
             taskCell.style.transform = "translateY(0)";
             taskCell.style.filter = "brightness(1)";
-
-            // Reset box shadow but maintain border radius
-            if (idx === 0) {
-              taskCell.style.boxShadow = "0 1px 2px rgba(0, 0, 0, 0.1)";
-              taskCell.style.borderTopLeftRadius = '3px';
-              taskCell.style.borderBottomLeftRadius = '3px';
-            } else if (idx === taskPeriodCells.length - 1) {
-              taskCell.style.boxShadow = "0 1px 2px rgba(0, 0, 0, 0.1)";
-              taskCell.style.borderTopRightRadius = '3px';
-              taskCell.style.borderBottomRightRadius = '3px';
-            } else {
-              taskCell.style.boxShadow = "0 1px 2px rgba(0, 0, 0, 0.1)";
-              taskCell.style.borderRadius = '0';
-            }
+            taskCell.style.boxShadow = "0 1px 2px rgba(0, 0, 0, 0.1)";
           });
-          taskPeriodCells[0].style.borderLeft = "1px solid rgba(255, 255, 255, 0.1)";
-          taskPeriodCells[taskPeriodCells.length - 1].style.borderRight = "1px solid rgba(255, 255, 255, 0.1)";
         };
 
         cell.addEventListener("mouseenter", handleMouseEnter);
@@ -580,6 +572,9 @@
           } else {
             cell.textContent = "";
           }
+
+          // Add progress bar to the first cell of the task period
+          cell.appendChild(progressContainer);
         }
 
         // --- 3rd cell of the task period ---
@@ -644,6 +639,16 @@
           cell.textContent = diffText;
         }
       }
+
+      // Calculate total width for progress bar container
+      const firstCell = taskPeriodCells[0];
+      const lastCell = taskPeriodCells[taskPeriodCells.length - 1];
+      const totalWidth = (taskPeriodCells.length * (firstCell.offsetWidth + 4)) + 'px'; // +4 for margins
+      progressContainer.style.width = totalWidth;
+
+      // Add the progress bar container to the first cell
+      firstCell.style.position = 'relative'; // Ensure positioning context
+      firstCell.appendChild(progressContainer);
 
       console.log(`Highlighted ${taskPeriodCells.length} cells for task "${task.title}" (${taskType})`);
       console.log(`Suggested Date: ${suggestedStr}, Actual Start Date: ${actualStartStr}, Actual End Date: ${actualEndStr}`);

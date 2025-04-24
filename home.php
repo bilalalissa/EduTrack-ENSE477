@@ -204,6 +204,8 @@ function test_input($data)
             display: none;
         }
     </style>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/progress-bar.css">
 </head>
 
 <body>
