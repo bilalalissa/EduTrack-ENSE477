@@ -131,8 +131,10 @@ document.addEventListener("DOMContentLoaded", async function () {
             cell.textContent = currentDate.toLocaleString("default", { month: "short" });
             cell.classList.add("month-highlight");
           } else if (currentDate.getDay() === 0) {
-            // Week numbers start from 1
-            const weekNum = Math.floor(col / 7) + 1;
+            // Calculate week number considering the offset from start date
+            const startDayOffset = window.startDateForMatrix.getDay(); // 0 for Sunday, 1 for Monday, etc.
+            const adjustedCol = col + startDayOffset;
+            const weekNum = Math.floor(adjustedCol / 7) + 1;
             cell.textContent = `W${weekNum}`;
             cell.classList.add("week-highlight");
           }
