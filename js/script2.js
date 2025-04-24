@@ -325,6 +325,7 @@ $(document).ready(function () {
 
     // Function to load tasks via AJAX and group them by course.
     function loadTasks() {
+        console.log('Loading tasks...');
         $.ajax({
             url: 'tasksHandler.php',
             type: 'POST',
@@ -360,8 +361,12 @@ $(document).ready(function () {
                         }
                         html += `</ul></li>`;
                     }
-                    if ($tasksList) $tasksList.html(html);
+                    if ($tasksList) {
+                        $tasksList.html(html);
+                        console.log('Tasks list updated successfully');
+                    }
                 } else {
+                    console.error("Failed to load tasks:", response.message);
                     alert("Failed to load tasks: " + response.message);
                 }
             },
@@ -389,6 +394,7 @@ $(document).ready(function () {
     $(document).on('click', '.editSaveBtn', function () {
         const taskId = $(this).data('id');
         const taskType = $(this).data('type');
+        console.log('Edit button clicked for task:', { id: taskId, type: taskType });
 
         // Add task_id hidden field if it doesn't exist
         if (!$('#task_id').length) {
@@ -433,6 +439,7 @@ $(document).ready(function () {
                         scrollTop: $tasksForm.offset().top
                     }, 'slow');
                 } else {
+                    console.error("Failed to fetch task details:", response.message);
                     alert("Failed to fetch task details: " + response.message);
                 }
             },
@@ -453,16 +460,18 @@ $(document).ready(function () {
         if (confirm("Are you sure you want to cancel editing?")) {
             clearAllErrors(); // Clear all error messages
             $tasksForm[0].reset();
+            $('#task_id').val(''); // Clear task ID
+            $submitTaskBtn.text('Submit Task'); // Reset button text
             $tasksForm.slideUp();
             if ($addTaskBtn) $addTaskBtn.show();
-            alert("Task editing canceled.");
+            console.log('Task editing canceled');
         }
     });
 
     // Handle form submission with direct jQuery binding
-    $('#tasksForm').submit(function (e) {
+    $tasksForm.on('submit', function (e) {
         e.preventDefault();
-        console.log('Form submitted - direct binding');
+        console.log('Form submitted');
 
         // Clear any previous error messages
         clearAllErrors();
@@ -484,9 +493,8 @@ $(document).ready(function () {
             taskId: $('#task_id').val()
         };
 
-        const isEditing = !!formData.taskId;
-
-        console.log('Form data collected:', formData);
+        const isEditing = !!formData.taskId || $submitTaskBtn.hasClass('editing-mode');
+        console.log('Form data:', formData);
         console.log('Is editing:', isEditing);
 
         // Validate required fields first
@@ -539,16 +547,10 @@ $(document).ready(function () {
             });
         }
 
-        // If there are any validation errors, stop form submission
         if (hasErrors) {
-            console.log('Validation errors found, stopping submission');
-            return false;
+            console.error('Form validation failed');
+            return;
         }
-
-        console.log('Validation passed, proceeding with submission');
-
-        // Clear all error messages since validation passed
-        clearAllErrors();
 
         // If validation passes, proceed with form submission
         $.ajax({
@@ -575,7 +577,7 @@ $(document).ready(function () {
             beforeSend: function () {
                 console.log('Sending AJAX request for ' + (isEditing ? 'edit' : 'add') + ' task...');
                 // Disable the submit button to prevent double submission
-                $('#submitTaskBtn').prop('disabled', true);
+                $submitTaskBtn.prop('disabled', true);
             },
             success: function (response) {
                 console.log('Server Response:', response);
@@ -590,19 +592,18 @@ $(document).ready(function () {
                     console.log('Resetting form and UI...');
 
                     // Clear all form fields
-                    $('#tasksForm')[0].reset();
+                    $tasksForm[0].reset();
 
-                    // Clear the task ID
+                    // Clear the task ID and reset submit button
                     $('#task_id').val('');
-
-                    // Reset submit button text and enable it
-                    $('#submitTaskBtn')
+                    $submitTaskBtn
                         .text('Submit Task')
-                        .prop('disabled', false);
+                        .prop('disabled', false)
+                        .removeClass('editing-mode');
 
                     // Hide the form and show the add button
-                    $('#tasksForm').slideUp(400, function () {
-                        $('#addTaskBtn').fadeIn();
+                    $tasksForm.slideUp(400, function () {
+                        $addTaskBtn.fadeIn();
                         console.log('Form hidden and Add Task button shown');
                     });
 
@@ -625,7 +626,7 @@ $(document).ready(function () {
                     console.error('Server returned error:', response);
                     alert("Failed to " + (isEditing ? "update" : "save") + " task: " + (response.message || "Unknown error"));
                     // Re-enable the submit button
-                    $('#submitTaskBtn').prop('disabled', false);
+                    $submitTaskBtn.prop('disabled', false);
                 }
             },
             error: function (xhr, status, error) {
@@ -649,7 +650,7 @@ $(document).ready(function () {
                         " task. Please check the console for details.");
                 }
                 // Re-enable the submit button
-                $('#submitTaskBtn').prop('disabled', false);
+                $submitTaskBtn.prop('disabled', false);
             }
         });
     });
