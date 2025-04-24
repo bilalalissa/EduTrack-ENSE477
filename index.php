@@ -209,6 +209,7 @@ if (!isset($_SESSION['username'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>[EduTrack] Personalized Academic Planner</title>
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/carousel.css">
 </head>
 
 <body>
@@ -266,15 +267,44 @@ if (!isset($_SESSION['username'])) {
                         <input type="password" id="password" name="password" required placeholder="Password">
                     </div>
                     <div class="form-footer">
-                    <button type="submit" id="loginButton">Login</button>
-                    <button type="button" id="signupButton">Sign-up</button>
+                        <button type="submit" id="loginButton">Login</button>
+                        <button type="button" id="signupButton">Sign-up</button>
                     </div>
                 </form>
             </div>
 
             <div class="right-section">
                 <div class="content">
-                    <!-- TODO add corosal-->
+                    <div class="carousel-container">
+                        <div class="carousel">
+                            <div class="carousel-track">
+                                <div class="carousel-slide">
+                                    <img src="media/imgs/01.png" alt="EduTrack Screenshot 1">
+                                </div>
+                                <div class="carousel-slide">
+                                    <img src="media/imgs/02.png" alt="EduTrack Screenshot 2">
+                                </div>
+                                <div class="carousel-slide">
+                                    <img src="media/imgs/03.png" alt="EduTrack Screenshot 3">
+                                </div>
+                                <div class="carousel-slide">
+                                    <img src="media/imgs/04.png" alt="EduTrack Screenshot 4">
+                                </div>
+                                <div class="carousel-slide">
+                                    <img src="media/imgs/05.png" alt="EduTrack Screenshot 5">
+                                </div>
+                                <div class="carousel-slide">
+                                    <img src="media/imgs/06.png" alt="EduTrack Screenshot 6">
+                                </div>
+                                <div class="carousel-slide">
+                                    <img src="media/imgs/07.png" alt="EduTrack Screenshot 7">
+                                </div>
+                            </div>
+                            <button class="carousel-button prev">&#10094;</button>
+                            <button class="carousel-button next">&#10095;</button>
+                            <div class="carousel-dots"></div>
+                        </div>
+                    </div>
 
                     <h2>Welcome to Personalized Academic Planner EduTrack</h2>
                     <p><strong>Embark on Your Organized Academic Journey!</strong></p>
@@ -348,6 +378,7 @@ if (!isset($_SESSION['username'])) {
 
     <script src="js/script.js"></script>
     <script src="js/script2.js"></script>
+    <script src="js/carousel.js"></script>
 
 </body>
 
