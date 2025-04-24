@@ -165,6 +165,7 @@ function test_input($data)
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="./js/script.js"></script>
     <script src="./js/todos.js"></script>
+    <script src="./js/insights.js"></script>
 
     <!-- Include CSS and JS for roundSlider -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/roundSlider/1.6.1/roundslider.min.css">
@@ -204,7 +205,6 @@ function test_input($data)
             display: none;
         }
     </style>
-    <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/progress-bar.css">
 </head>
 
@@ -240,6 +240,27 @@ function test_input($data)
                     }
                     ?>
                 </span>] [EduTrack] - Home</h1>
+            <div class="insights-container">
+                <div class="insights-toggle">«</div>
+                <div class="insights-content">
+                    <div class="insight-item">
+                        <span class="insight-label">Tasks:</span>
+                        <span class="insight-value" id="tasksProgress">0/0</span>
+                    </div>
+                    <div class="insight-item">
+                        <span class="insight-label">Days:</span>
+                        <span class="insight-value" id="daysProgress">0/0</span>
+                    </div>
+                    <div class="insight-item">
+                        <span class="insight-label">Weeks:</span>
+                        <span class="insight-value" id="weeksProgress">0/0</span>
+                    </div>
+                    <div class="insight-item">
+                        <span class="insight-label">Semester:</span>
+                        <span class="insight-value" id="semesterProgress">0%</span>
+                    </div>
+                </div>
+            </div>
             <div class="header-buttons">
                 <button id="exitButton" class="action-button left-button">Exit</button>
                 <!-- <a href="Transcribe/index.html">
@@ -795,7 +816,7 @@ function test_input($data)
 
             <div class="mid-tap">
                 <div class="button-container">
-                    <button class="vertical-button" id="schdBtn" style="background-color: #6f622ca6;">Schdeule</button>
+                    <!-- <button class="vertical-button" id="schdBtn" style="background-color: #6f622ca6;">Schdeule</button> -->
                     <button class="vertical-button" id="taskBtn" style="background-color: #586729a6;">Tasks</button>
                     <button class="vertical-button" id="coursesBtn"
                         style="background-color: #1e411ea6;">Courses</button>

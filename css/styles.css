@@ -38,12 +38,14 @@ header {
     /* border: 1px solid #be1006; */
     /* border-bottom: none; */
     border-bottom: 3px groove #ab261fa4;
-    padding: 5px;
+    padding: 20px;
     margin-bottom: 0;
     /* Reduce or remove the bottom margin */
     height: 15%;
     /* Height set as 15% of the viewport height */
     position: relative;
+    overflow: hidden;
+    /* Add this to contain the sliding insights */
 }
 
 .header-buttons {
@@ -372,7 +374,7 @@ sub {
     margin-bottom: 10px;
     /* padding: 0 10px; */
     width: calc(100% - 20px);
-    
+
 }
 
 #signupForm input {
@@ -1560,4 +1562,82 @@ select:focus::placeholder {
 #passwordValidation {
     margin-top: 2px;
     line-height: 1.2;
+}
+
+/* Insights Container Styles */
+.insights-container {
+    position: absolute;
+    top: 25px;
+    right: -280px;
+    /* Start hidden */
+    transform: translateY(-50%);
+    background-color: rgba(38, 38, 38, 0.95);
+    /* Match header background */
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 5px 15px;
+    transition: all 0.3s ease;
+    z-index: 100;
+    cursor: pointer;
+    height: 30px;
+    /* Fixed height to match header */
+    display: flex;
+    align-items: center;
+}
+
+.insights-container:hover {
+    background-color: rgba(48, 48, 48, 0.95);
+}
+
+.insights-container.visible {
+    right: 0;
+}
+
+.insights-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    white-space: nowrap;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+    padding-right: 10px;
+}
+
+.insights-container:hover .insights-content {
+    opacity: 1;
+}
+
+.insight-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.insight-label {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.85em;
+}
+
+.insight-value {
+    color: rgba(100, 149, 237, 0.8);
+    font-weight: bold;
+    font-size: 0.85em;
+}
+
+/* Toggle button */
+.insights-toggle {
+    display: block;
+    position: absolute;
+    left: -20px;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(38, 38, 38, 0.95);
+    color: rgba(255, 255, 255, 0.7);
+    padding: 5px;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    font-size: 0.8em;
+    transition: all 0.3s ease;
+    height: 100%;
+    display: flex;
+    align-items: center;
 }

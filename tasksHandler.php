@@ -11,7 +11,7 @@ if (!isset($_SESSION['signupUserId'])) {
     exit;
 }
 
-$user_id = $_SESSION['signupUserId'];
+$userId = $_SESSION['signupUserId'];
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
 // Allow both GET and POST methods depending on the action
@@ -28,7 +28,7 @@ if ($action === 'getStartDate') {
 
     foreach ($tables as $table) {
         $stmt = $conn->prepare("SELECT MIN(start_date) as min_date FROM $table WHERE user_id = ?");
-        $stmt->execute([$user_id]);
+        $stmt->execute([$userId]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($result['min_date'] && (!$startDate || $result['min_date'] < $startDate)) {
@@ -140,7 +140,7 @@ if ($action === 'list') {
         // Loop over each task type.
         foreach ($tableMap as $type => $tableName) {
             $stmt = $conn->prepare("SELECT *, ? as task_type FROM $tableName WHERE user_id = ? ORDER BY from_date DESC");
-            $stmt->execute([$type, $user_id]);
+            $stmt->execute([$type, $userId]);
             $tasksForType = $stmt->fetchAll(PDO::FETCH_ASSOC);
             // Normalize the primary key field.
             foreach ($tasksForType as &$task) {
@@ -173,7 +173,7 @@ if ($action === 'list') {
         }
         $tableName = $tableMap[$task_type];
         $stmt = $conn->prepare("SELECT * FROM $tableName WHERE user_id = ? ORDER BY from_date DESC");
-        $stmt->execute([$user_id]);
+        $stmt->execute([$userId]);
         $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
         foreach ($tasks as &$task) {
             if (isset($task['asmnt_id'])) {
@@ -315,7 +315,7 @@ elseif ($action === 'add') {
 
         // Check for duplicate task.
         $stmt = $conn->prepare("SELECT $idColumn FROM $tableName WHERE user_id = ? AND start_date = ? AND course_id = ? AND title = ?");
-        $stmt->execute([$user_id, $start_date, $course_id, $title]);
+        $stmt->execute([$userId, $start_date, $course_id, $title]);
         if ($stmt->fetch()) {
             error_log("Duplicate task found");
             echo json_encode(["status" => "error", "message" => "A task with the same title already exists for this course and start date."]);
@@ -329,7 +329,7 @@ elseif ($action === 'add') {
 
         error_log("Executing SQL: $sql");
         error_log("With parameters: " . print_r([
-            $user_id,
+            $userId,
             $start_date,
             $course_id,
             $title,
@@ -346,7 +346,7 @@ elseif ($action === 'add') {
 
         $stmt = $conn->prepare($sql);
         $result = $stmt->execute([
-            $user_id,
+            $userId,
             $start_date,
             $course_id,
             $title,
@@ -413,7 +413,7 @@ elseif ($action === 'delete') {
 
     // Delete the task (only if it belongs to the user).
     $stmt = $conn->prepare("DELETE FROM $tableName WHERE $idColumn = ? AND user_id = ?");
-    $result = $stmt->execute([$id, $user_id]);
+    $result = $stmt->execute([$id, $userId]);
     if ($result) {
         echo json_encode([
             "status" => "success",
@@ -460,11 +460,11 @@ elseif ($action === 'getTask') {
     $idColumn = $idMap[$task_type];
 
     // Log incoming request parameters for debugging
-    error_log("[DEBUG] getTask action: task_type = $task_type, id = $id, user_id = $user_id");
+    error_log("[DEBUG] getTask action: task_type = $task_type, id = $id, user_id = $userId");
 
     // Fetch the task details.
     $stmt = $conn->prepare("SELECT * FROM $tableName WHERE $idColumn = ? AND user_id = ?");
-    $stmt->execute([$id, $user_id]);
+    $stmt->execute([$id, $userId]);
     $task = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($task) {
@@ -563,7 +563,7 @@ elseif ($action === 'editTask') {
         if ($stmt->execute()) {
             // Fetch the updated task details
             $stmt = $conn->prepare("SELECT * FROM $tableName WHERE $idColumn = ? AND user_id = ?");
-            $stmt->execute([$id, $user_id]);
+            $stmt->execute([$id, $userId]);
             $updatedTask = $stmt->fetch(PDO::FETCH_ASSOC);
 
             // Include the task type in the response
@@ -745,6 +745,109 @@ elseif ($action === 'updateVisibility') {
         echo json_encode(['status' => 'error', 'message' => 'Database error occurred']);
     }
     exit;
+} elseif ($action === 'getInsights') {
+    try {
+        // Get total tasks (combine all task types)
+        $totalTasksQuery = "
+            SELECT COUNT(*) as total FROM (
+                SELECT asmnt_id FROM Assignments WHERE user_id = ?
+                UNION ALL
+                SELECT qz_id FROM Quizzes WHERE user_id = ?
+                UNION ALL
+                SELECT proj_id FROM Projects WHERE user_id = ?
+                UNION ALL
+                SELECT mt_id FROM MTs WHERE user_id = ?
+                UNION ALL
+                SELECT final_id FROM Finals WHERE user_id = ?
+            ) as all_tasks";
+
+        $stmt = $conn->prepare($totalTasksQuery);
+        $stmt->execute([$userId, $userId, $userId, $userId, $userId]);
+        $totalTasks = $stmt->fetchColumn();
+
+        // Get submitted tasks (status = 'submitted')
+        $submittedTasksQuery = "
+            SELECT COUNT(*) as submitted FROM (
+                SELECT asmnt_id FROM Assignments WHERE user_id = ? AND status = 'submitted'
+                UNION ALL
+                SELECT qz_id FROM Quizzes WHERE user_id = ? AND status = 'submitted'
+                UNION ALL
+                SELECT proj_id FROM Projects WHERE user_id = ? AND status = 'submitted'
+                UNION ALL
+                SELECT mt_id FROM MTs WHERE user_id = ? AND status = 'submitted'
+                UNION ALL
+                SELECT final_id FROM Finals WHERE user_id = ? AND status = 'submitted'
+            ) as submitted_tasks";
+
+        $stmt = $conn->prepare($submittedTasksQuery);
+        $stmt->execute([$userId, $userId, $userId, $userId, $userId]);
+        $submittedTasks = $stmt->fetchColumn();
+
+        // Get semester dates from Settings table
+        $semesterQuery = "SELECT date FROM Settings WHERE user_id = ? AND is_start_date = 1 ORDER BY date DESC LIMIT 1";
+        $stmt = $conn->prepare($semesterQuery);
+        $stmt->execute([$userId]);
+        $startDate = $stmt->fetchColumn();
+
+        if (!$startDate) {
+            throw new Exception("No semester start date found");
+        }
+
+        // Calculate end date (120 days from start date)
+        $startDateTime = new DateTime($startDate);
+        $endDateTime = clone $startDateTime;
+        $endDateTime->modify('+120 days');
+
+        // Calculate current progress
+        $currentDateTime = new DateTime();
+
+        // Ensure we don't exceed the end date
+        if ($currentDateTime > $endDateTime) {
+            $currentDateTime = clone $endDateTime;
+        }
+
+        // Ensure we don't go before start date
+        if ($currentDateTime < $startDateTime) {
+            $currentDateTime = clone $startDateTime;
+        }
+
+        // Calculate days
+        $totalDays = $startDateTime->diff($endDateTime)->days;
+        $daysPassed = $startDateTime->diff($currentDateTime)->days;
+
+        // Calculate weeks (round up to nearest week)
+        $totalWeeks = ceil($totalDays / 7);
+        $weeksPassed = ceil($daysPassed / 7);
+
+        // Log the calculated values for debugging
+        error_log("Insights calculation: " . json_encode([
+            'totalTasks' => $totalTasks,
+            'submittedTasks' => $submittedTasks,
+            'startDate' => $startDate,
+            'currentDate' => $currentDateTime->format('Y-m-d'),
+            'endDate' => $endDateTime->format('Y-m-d'),
+            'totalDays' => $totalDays,
+            'daysPassed' => $daysPassed,
+            'totalWeeks' => $totalWeeks,
+            'weeksPassed' => $weeksPassed
+        ]));
+
+        echo json_encode([
+            'status' => 'success',
+            'submittedTasks' => $submittedTasks,
+            'totalTasks' => $totalTasks,
+            'daysPassed' => $daysPassed,
+            'totalDays' => $totalDays,
+            'weeksPassed' => $weeksPassed,
+            'totalWeeks' => $totalWeeks
+        ]);
+    } catch (Exception $e) {
+        error_log("Error in getInsights: " . $e->getMessage());
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Error fetching insights: ' . $e->getMessage()
+        ]);
+    }
 } else {
     echo json_encode(["status" => "error", "message" => "Invalid action."]);
     exit;
