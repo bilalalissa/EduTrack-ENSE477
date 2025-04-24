@@ -33,16 +33,14 @@ header {
     background-color: #262626;
     border-top-left-radius: 5px;
     border-top-right-radius: 5px;
-    margin: 20px;
+    margin: 10px 20px 0 20px;
     border: 1px solid #ab261fa4;
     /* border: 1px solid #be1006; */
     /* border-bottom: none; */
     border-bottom: 3px groove #ab261fa4;
-    padding: 20px;
+    padding: 10px 20px;
     margin-bottom: 0;
-    /* Reduce or remove the bottom margin */
-    height: 15%;
-    /* Height set as 15% of the viewport height */
+    height: auto;
     position: relative;
     overflow: hidden;
     /* Add this to contain the sliding insights */
@@ -1566,22 +1564,24 @@ select:focus::placeholder {
 
 /* Insights Container Styles */
 .insights-container {
-    position: absolute;
-    top: 25px;
+    position: fixed;
+    /* Change from absolute to fixed */
+    top: 0;
+    /* Align with top of viewport */
     right: -280px;
-    /* Start hidden */
-    transform: translateY(-50%);
+    transform: none;
+    /* Remove transform since we're using fixed positioning */
     background-color: rgba(38, 38, 38, 0.95);
-    /* Match header background */
     border-left: 1px solid rgba(255, 255, 255, 0.1);
     padding: 5px 15px;
     transition: all 0.3s ease;
     z-index: 100;
     cursor: pointer;
     height: 30px;
-    /* Fixed height to match header */
     display: flex;
     align-items: center;
+    margin-top: 25px;
+    /* Add margin to position below header */
 }
 
 .insights-container:hover {
